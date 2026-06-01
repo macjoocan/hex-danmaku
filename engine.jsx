@@ -39,6 +39,16 @@ const hd = (r1, c1, r2, c2) => {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by), Math.abs(az - bz));
 };
 
+// ─── Balance config (editor-tunable via window.HXB; defaults match originals) ───
+const DEFAULT_BAL = {
+  skill: { undoCost: 30, bombCost: 50, bombRadius: 2, freezeCost: 80, freezeTurns: 3 },
+  score: { surviveBase: 10, comboCap: 10, gemBase: 80, gemCombo: 4, starBase: 50, starCombo: 3 },
+  item:  { spawnChance: 0.24, max: 3, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // ht = remainder
+  enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
+  endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
+};
+const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
+
 // ─── Patterns (column-spawn shapes) ────────────────────────────
 const PAT = {
   twin:    { n: '양날',     c: [0, 1, 5, 6] },
@@ -72,11 +82,13 @@ const rp = (t) => {
 };
 
 // difficulty label (endless)
-const DL = (t) =>
-  t < 15 ? { lb: 'EASY',   sub: '초급',  c: '#5eead4' } :
-  t < 35 ? { lb: 'NORMAL', sub: '중급',  c: '#fbbf24' } :
-  t < 60 ? { lb: 'HARD',   sub: '고급',  c: '#fb7185' } :
-           { lb: 'CHAOS',  sub: '극한',  c: '#f43f5e' };
+const DL = (t) => {
+  const e = bal().endless;
+  return t < e.diffEasy   ? { lb: 'EASY',   sub: '초급',  c: '#5eead4' } :
+         t < e.diffNormal ? { lb: 'NORMAL', sub: '중급',  c: '#fbbf24' } :
+         t < e.diffHard   ? { lb: 'HARD',   sub: '고급',  c: '#fb7185' } :
+                            { lb: 'CHAOS',  sub: '극한',  c: '#f43f5e' };
+};
 
 // ─── Helpers ───────────────────────────────────────────────────
 const safest = (bl, pl, walls = []) => {
@@ -99,8 +111,8 @@ const safest = (bl, pl, walls = []) => {
 };
 
 const tryItem = (its, pl, bl) => {
-  if (its.length >= 3) return its;
-  if (Math.random() > 0.24) return its;
+  if (its.length >= bal().item.max) return its;
+  if (Math.random() > bal().item.spawnChance) return its;
   const occ = new Set([
     ...bl.map(b => `${b.r},${b.c}`),
     `${pl.r},${pl.c}`,
@@ -115,9 +127,10 @@ const tryItem = (its, pl, bl) => {
   if (!cands.length) return its;
   const cell = cands[Math.floor(Math.random() * cands.length)];
   const roll = Math.random();
-  const ty = roll < 0.45 ? 'sc'
-           : roll < 0.63 ? 'bm'
-           : roll < 0.75 ? 'tp'
+  const it = bal().item;
+  const ty = roll < it.pSc ? 'sc'
+           : roll < it.pSc + it.pBm ? 'bm'
+           : roll < it.pSc + it.pBm + it.pTp ? 'tp'
            : 'ht';
   return [...its, { ...cell, ty }];
 };
@@ -140,8 +153,6 @@ const stepToward = (e, target, walls, others) => {
 
 // direction index opposites: [W,E,NW,NE,SW,SE] -> reflect
 const REFLECT = [1, 0, 5, 4, 3, 2];
-const LUNGE_WINDUP = 1; // turns telegraphing before a dash
-const LUNGE_DASH = 2;   // hexes moved per dash
 
 // pick the neighbor-direction index that most reduces distance to the player
 const pickFace = (e, ctx) => {
@@ -160,7 +171,8 @@ const ENEMY_KINDS = {
   // half-speed greedy homing (existing behavior)
   chase: {
     step: (e, ctx) => {
-      if (ctx.t % 2 !== 1) return;
+      const every = bal().enemy.chaseEvery;
+      if (ctx.t % every !== every - 1) return;
       const p = stepToward(e, ctx.player, ctx.block, ctx.others);
       e.r = p.r; e.c = p.c;
     },
@@ -185,9 +197,10 @@ const ENEMY_KINDS = {
   // wind up (telegraph) then dash several hexes toward the player
   lunge: {
     step: (e, ctx) => {
-      if (e.cd == null) e.cd = LUNGE_WINDUP;
+      const wind = bal().enemy.lungeWindup, dash = bal().enemy.lungeDash;
+      if (e.cd == null) e.cd = wind;
       if (e.cd > 0) { e.cd -= 1; e.face = pickFace(e, ctx); return; }
-      for (let i = 0; i < LUNGE_DASH; i++) {
+      for (let i = 0; i < dash; i++) {
         const [dr, dc] = D(e.r)[e.face];
         const r = e.r + dr, c = e.c + dc;
         if (r < 0 || r >= R || c < 0 || c >= C
@@ -195,13 +208,14 @@ const ENEMY_KINDS = {
         e.r = r; e.c = c;
         ctx.passed.push({ r, c }); // mid-dash cells are lethal too
       }
-      e.cd = LUNGE_WINDUP;
+      e.cd = wind;
     },
     // cells the dash will sweep next turn (for the renderer warning lane)
     telegraph: (e) => {
       if (e.cd !== 0 || e.face == null) return [];
+      const dash = bal().enemy.lungeDash;
       const cells = []; let r = e.r, c = e.c;
-      for (let i = 0; i < LUNGE_DASH; i++) {
+      for (let i = 0; i < dash; i++) {
         const [dr, dc] = D(r)[e.face]; r += dr; c += dc;
         if (r < 0 || r >= R || c < 0 || c >= C) break;
         cells.push({ r, c });
@@ -349,7 +363,7 @@ const tick = (s, nr, nc) => {
   if (itemAt) {
     its = its.filter(i => i !== itemAt);
     if (itemAt.ty === 'sc') {
-      bonus = 50 + combo * 3;
+      bonus = bal().score.starBase + combo * bal().score.starCombo;
       evts.push({ ty: 'sc', r: nr, c: nc, val: bonus });
     } else if (itemAt.ty === 'bm') {
       const removed = mv.filter(b => hd(nr, nc, b.r, b.c) <= 2);
@@ -369,7 +383,7 @@ const tick = (s, nr, nc) => {
   const gemAt = gems.find(gm => gm.r === finalR && gm.c === finalC);
   if (gemAt) {
     gems = gems.filter(gm => gm !== gemAt);
-    const gv = 80 + combo * 4;
+    const gv = bal().score.gemBase + combo * bal().score.gemCombo;
     bonus += gv;
     evts.push({ ty: 'gem', r: gemAt.r, c: gemAt.c, val: gv });
   }
@@ -420,7 +434,7 @@ const tick = (s, nr, nc) => {
   }
 
   let sc = s.sc;
-  if (!ov) sc += (10 + Math.min(combo, 10)) + bonus;
+  if (!ov) sc += (bal().score.surviveBase + Math.min(combo, bal().score.comboCap)) + bonus;
 
   // random utility items only spawn in endless
   if (!ov && !win && !isStage) its = tryItem(its, { r: finalR, c: finalC }, mv);
@@ -452,26 +466,31 @@ const tick = (s, nr, nc) => {
 };
 
 // ─── Skills ────────────────────────────────────────────────────
-const doUndo = (s) =>
-  (!s.hist || s.sc < 30 || s.ov || s.win) ? s
-  : { ...s.hist, sc: s.sc - 30, hist: null, ov: false, win: false, evts: [], skillUses: (s.skillUses || 0) + 1 };
+const doUndo = (s) => {
+  const c = bal().skill.undoCost;
+  return (!s.hist || s.sc < c || s.ov || s.win) ? s
+    : { ...s.hist, sc: s.sc - c, hist: null, ov: false, win: false, evts: [], skillUses: (s.skillUses || 0) + 1 };
+};
 
 const doBomb = (s) => {
-  if (s.sc < 50 || s.ov || s.win) return s;
-  const xc = s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) <= 2);
+  const { bombCost: c, bombRadius: rad } = bal().skill;
+  if (s.sc < c || s.ov || s.win) return s;
+  const xc = s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) <= rad);
   return {
     ...s,
-    bl: s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) > 2),
-    enemies: (s.enemies || []).filter(e => hd(s.pl.r, s.pl.c, e.r, e.c) > 2),
-    sc: s.sc - 50,
+    bl: s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) > rad),
+    enemies: (s.enemies || []).filter(e => hd(s.pl.r, s.pl.c, e.r, e.c) > rad),
+    sc: s.sc - c,
     skillUses: (s.skillUses || 0) + 1,
     evts: [{ ty: 'bm', r: s.pl.r, c: s.pl.c, cells: xc.map(b => `${b.r},${b.c}`) }],
   };
 };
 
-const doFreeze = (s) =>
-  (s.sc < 80 || s.fz > 0 || s.ov || s.win) ? s
-  : { ...s, fz: 3, sc: s.sc - 80, skillUses: (s.skillUses || 0) + 1, evts: [] };
+const doFreeze = (s) => {
+  const { freezeCost: c, freezeTurns: ft } = bal().skill;
+  return (s.sc < c || s.fz > 0 || s.ov || s.win) ? s
+    : { ...s, fz: ft, sc: s.sc - c, skillUses: (s.skillUses || 0) + 1, evts: [] };
+};
 
 // ─── Init (endless) ────────────────────────────────────────────
 const initState = () => ({
@@ -516,6 +535,6 @@ Object.assign(window, {
     safest, tryItem, stepToward, tick,
     ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
-    initState,
+    initState, DEFAULT_BAL,
   },
 });
