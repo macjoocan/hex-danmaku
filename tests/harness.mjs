@@ -50,3 +50,27 @@ export function baseState(HX, over = {}) {
 // fails on prototype identity even when contents match. Do NOT use plain() for
 // identity checks like `assert.equal(n, s)` — wrapping would break reference equality.
 export const plain = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
+
+// Load engine + stages + a stubbed HXR.RES + editor-core, with a fake localStorage.
+// resources.jsx contains JSX so it can't run in plain vm; editor-core only needs RES as data.
+export function loadEditor({ seed = 1, initialLS = {} } = {}) {
+  const win = {};
+  const sandboxMath = Object.create(Math);
+  sandboxMath.random = makeRng(seed);
+  const store = new Map(Object.entries(initialLS).map(([k, v]) => [k, JSON.stringify(v)]));
+  const localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
+    clear: () => store.clear(),
+  };
+  const sandbox = { window: win, Math: sandboxMath, console, localStorage };
+  sandbox.globalThis = sandbox;
+  const ctx = vm.createContext(sandbox);
+  for (const f of ['engine.jsx', 'stages.jsx']) {
+    vm.runInContext(`(function(){\n${readFileSync(join(ROOT, f), 'utf8')}\n})();`, ctx, { filename: f });
+  }
+  win.HXR = { RES: { player: { kind: 'pixel', px: 2.4 }, drone: { kind: 'pixel', px: 2.3 } } };
+  vm.runInContext(`(function(){\n${readFileSync(join(ROOT, 'editor-core.jsx'), 'utf8')}\n})();`, ctx, { filename: 'editor-core.jsx' });
+  return { HX: win.HX, HXS: win.HXS, HXR: win.HXR, HXE: win.HXE, win, store };
+}

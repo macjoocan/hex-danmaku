@@ -112,7 +112,7 @@ const pickPattern = (stage, t, s) => {
     const ph = phaseFor(stage, s.bossWaves || 0);
     return bossAtk(stage.phases[ph], s);
   }
-  const pool = stage.pool || [PAT.center];
+  const pool = (stage.pool && stage.pool.length) ? stage.pool : [PAT.center];
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
@@ -346,41 +346,29 @@ const objFor = (def) => {
   return { type: 'normal' };
 };
 
-const initStage = (idx) => {
-  const def = STAGES[idx];
+const initStageDef = (def, idx = 0) => {
   const base = {
-    mode: 'stage',
-    stage: def,
-    stageIdx: idx,
+    mode: 'stage', stage: def, stageIdx: idx,
     pl: def.start ? { ...def.start } : { r: R - 1, c: mid },
     bl: [],
     walls: (def.walls || []).map(w => ({ ...w })),
     turrets: (def.turrets || []).map(t => ({ ...t })),
     spikes: (def.spikes || []).map(sp => ({ ...sp })),
+    cracks: (def.cracks || []).map(cr => ({ ...cr, broken: false })),
+    pads: (def.pads || []).map(p => ({ ...p })),
     lasers: [],
     enemies: (def.enemies || []).map(e => ({ ...e })),
     goal: def.goal ? { ...def.goal } : null,
     gems: (def.gems || []).map(g => ({ ...g })),
-    t: 0,
-    sc: 0,
-    ov: false,
-    win: false,
-    ln: '',
-    its: [],
-    fz: 0,
-    ht: 0,
-    hist: null,
-    combo: 0,
-    bossWaves: 0,
-    obj: objFor(def),
-    skillUses: 0,
-    si: def.firstDelay != null ? def.firstDelay : 1,
-    evts: [],
+    t: 0, sc: 0, ov: false, win: false, ln: '', its: [], fz: 0, ht: 0,
+    hist: null, combo: 0, bossWaves: 0, obj: objFor(def), skillUses: 0,
+    si: def.firstDelay != null ? def.firstDelay : 1, evts: [],
   };
   base.np = pickPattern(def, 0, base);
   base.np2 = pickPattern(def, 1, { ...base, bossWaves: def.type === 'boss' ? 1 : 0 });
   return base;
 };
+const initStage = (idx) => initStageDef(STAGES[idx], idx);
 
 // progress objective text for HUD
 const objText = (s) => {
@@ -419,7 +407,8 @@ const saveStars = (id, stars) => {
   }
   return loadStars();
 };
-const isUnlocked = (idx, stars) => idx === 0 || !!stars[STAGES[idx - 1].id];
+const isUnlocked = (idx, stars) =>
+  idx === 0 || (STAGES[idx] && STAGES[idx].id >= 1000) || !!stars[STAGES[idx - 1].id];
 
 // 3 stars: no skills · 2 stars: ≤2 skills · 1 star: cleared
 const rateStage = (s) => {
@@ -438,7 +427,7 @@ Object.assign(window, {
   HXS: {
     STAGES,
     pickPattern, stageInterval, bossPhaseName, phaseFor,
-    initStage, objText, objFor,
+    initStage, initStageDef, objText, objFor,
     loadStars, saveStars, isUnlocked, rateStage,
     TYPE_META,
   },
