@@ -211,6 +211,15 @@ const ENEMY_KINDS = {
   },
 };
 
+// declarative terrain/hazard properties (metadata; crack/pad use the inline logic in tick)
+const GIMMICKS = {
+  wall:   { blocksMove: true,  blocksBullet: true,  lethal: false },
+  turret: { blocksMove: true,  blocksBullet: true,  lethal: false },
+  spike:  { blocksMove: false, blocksBullet: false, lethal: true },
+  crack:  { blocksMove: 'whenBroken', blocksBullet: 'whenBroken', lethal: false },
+  pad:    { blocksMove: false, blocksBullet: false, lethal: false, push: true },
+};
+
 // ─── Main tick (handles both modes) ────────────────────────────
 const tick = (s, nr, nc) => {
   if (s.ov || s.win) return s;
@@ -223,8 +232,11 @@ const tick = (s, nr, nc) => {
   const walls = s.walls || [];
   const turrets = s.turrets || [];
   const spikes = s.spikes || [];
-  const block = turrets.length ? [...walls, ...turrets] : walls;
-  if (!stay && block.some(w => w.r === nr && w.c === nc)) return s; // blocked by wall/turret
+  const cracks = s.cracks || [];
+  const pads = s.pads || [];
+  const brokenCracks = cracks.filter(cr => cr.broken);
+  const block = [...walls, ...turrets, ...brokenCracks];
+  if (!stay && block.some(w => w.r === nr && w.c === nc)) return s; // blocked by wall/turret/hole
 
   const isStage = s.mode === 'stage';
   const hist = { ...s, evts: [] };
@@ -303,8 +315,19 @@ const tick = (s, nr, nc) => {
     }
   }
 
-  // ── items / gems ──
+  // ── pad: shove one hex before any item/gem/collision resolves (once, no chaining) ──
   let finalR = nr, finalC = nc;
+  if (!stay) {
+    const padAt = pads.find(p => p.r === finalR && p.c === finalC);
+    if (padAt) {
+      const [pdr, pdc] = D(finalR)[padAt.dir];
+      const pr = finalR + pdr, pc = finalC + pdc;
+      if (pr >= 0 && pr < R && pc >= 0 && pc < C && !block.some(w => w.r === pr && w.c === pc)) {
+        finalR = pr; finalC = pc;
+      }
+    }
+  }
+  // ── items / gems ──
   let bonus = 0;
   let its = s.its;
   let gems = s.gems || [];
@@ -402,12 +425,20 @@ const tick = (s, nr, nc) => {
   // random utility items only spawn in endless
   if (!ov && !win && !isStage) its = tryItem(its, { r: finalR, c: finalC }, mv);
 
+  // crack collapses when the player leaves it
+  let newCracks = cracks;
+  if (!stay) {
+    const left = cracks.find(cr => cr.r === s.pl.r && cr.c === s.pl.c && !cr.broken);
+    if (left) newCracks = cracks.map(cr => (cr === left ? { ...cr, broken: true } : cr));
+  }
+
   return {
     ...s,
     pl: { r: finalR, c: finalC },
     bl: mv,
     enemies,
     gems,
+    cracks: newCracks,
     t: s.t + 1,
     sc, ov, win,
     np, np2, si, ln,
@@ -455,6 +486,8 @@ const initState = () => ({
   enemies: [],
   goal: null,
   gems: [],
+  cracks: [],
+  pads: [],
   t: 0,
   sc: 0,
   ov: false,
@@ -481,7 +514,7 @@ Object.assign(window, {
     hc, hp, D, hd,
     PAT, EP, HP, rp, DL,
     safest, tryItem, stepToward, tick,
-    ENEMY_KINDS, pickFace,
+    ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
     initState,
   },
