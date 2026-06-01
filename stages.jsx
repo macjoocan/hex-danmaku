@@ -2,7 +2,7 @@
  * Exposes window.HXS. Depends on window.HX (engine).
  */
 
-const { C, R, PAT } = window.HX;
+const { C, R, PAT, D } = window.HX;
 
 const shuffle = (a) => {
   const x = a.slice();
@@ -68,6 +68,29 @@ const bossAtk = (atk, s) => {
       // no falling bullets — charge a telegraphed beam down a column (player's, drifting)
       const lc = (atk.aim ? s.pl.c : ping(w));
       return { n: atk.name || '광선', c: [], laser: [lc] };
+    }
+    case 'spiral': {
+      // rotating "comb": every 3rd column (offset by ping) is safe; safe set drifts 1/wave
+      const ph = ping(w);
+      return { n: atk.name || '나선탄', c: allCols.filter(c => (((c - ph) % 3) + 3) % 3 !== 0) };
+    }
+    case 'drift': {
+      // diagonal volley: alternating comb with a sideways velocity
+      const cols = (w % 2) ? [1, 3, 5] : [0, 2, 4, 6];
+      return { n: atk.name || '사선 포화', c: cols, vc: (w % 2) ? 1 : -1 };
+    }
+    case 'mark': {
+      // telegraph the player's cell + neighbors as fuse mines (detonate next wave)
+      const pr = s.pl.r, pc = s.pl.c;
+      const spots = [{ r: pr, c: pc }, ...D(pr).map(([dr, dc]) => ({ r: pr + dr, c: pc + dc }))]
+        .filter(p => p.r >= 0 && p.r < R && p.c >= 0 && p.c < C);
+      return { n: atk.name || '각인탄', cells: spots.map(p => ({ ...p, fuse: 1 })) };
+    }
+    case 'summon': {
+      // even waves: spawn a bouncer from a top corner; odd waves: light aimed shot (caps adds)
+      if (w % 2 === 1) return { n: atk.name || '소환', c: [clampC(s.pl.c)] };
+      const left = (w % 4) === 0;
+      return { n: atk.name || '소환', c: [], summon: { r: 1, c: left ? 0 : C - 1, kind: 'bounce', dir: left ? 1 : 0 } };
     }
     default:
       return { n: '산탄', c: [1, 3, 5] };
