@@ -138,6 +138,79 @@ const stepToward = (e, target, walls, others) => {
   return best;
 };
 
+// direction index opposites: [W,E,NW,NE,SW,SE] -> reflect
+const REFLECT = [1, 0, 5, 4, 3, 2];
+const LUNGE_WINDUP = 1; // turns telegraphing before a dash
+const LUNGE_DASH = 2;   // hexes moved per dash
+
+// pick the neighbor-direction index that most reduces distance to the player
+const pickFace = (e, ctx) => {
+  const dirs = D(e.r);
+  let best = 1, bd = 999;
+  for (let i = 0; i < dirs.length; i++) {
+    const r = e.r + dirs[i][0], c = e.c + dirs[i][1];
+    if (r < 0 || r >= R || c < 0 || c >= C) continue;
+    const d = hd(r, c, ctx.player.r, ctx.player.c);
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+};
+
+const ENEMY_KINDS = {
+  // half-speed greedy homing (existing behavior)
+  chase: {
+    step: (e, ctx) => {
+      if (ctx.t % 2 !== 1) return;
+      const p = stepToward(e, ctx.player, ctx.block, ctx.others);
+      e.r = p.r; e.c = p.c;
+    },
+  },
+  // constant-direction straight line, reflects off walls/edges
+  bounce: {
+    step: (e, ctx) => {
+      if (e.dir == null) e.dir = 1; // default east
+      const tryMove = (dir) => {
+        const [dr, dc] = D(e.r)[dir];
+        const r = e.r + dr, c = e.c + dc;
+        const blocked = r < 0 || r >= R || c < 0 || c >= C
+          || ctx.block.some(w => w.r === r && w.c === c)
+          || ctx.others.some(o => o.r === r && o.c === c);
+        return blocked ? null : { r, c };
+      };
+      let nxt = tryMove(e.dir);
+      if (!nxt) { e.dir = REFLECT[e.dir]; nxt = tryMove(e.dir); }
+      if (nxt) { e.r = nxt.r; e.c = nxt.c; }
+    },
+  },
+  // wind up (telegraph) then dash several hexes toward the player
+  lunge: {
+    step: (e, ctx) => {
+      if (e.cd == null) e.cd = LUNGE_WINDUP;
+      if (e.cd > 0) { e.cd -= 1; e.face = pickFace(e, ctx); return; }
+      for (let i = 0; i < LUNGE_DASH; i++) {
+        const [dr, dc] = D(e.r)[e.face];
+        const r = e.r + dr, c = e.c + dc;
+        if (r < 0 || r >= R || c < 0 || c >= C
+          || ctx.block.some(w => w.r === r && w.c === c)) break;
+        e.r = r; e.c = c;
+        ctx.passed.push({ r, c }); // mid-dash cells are lethal too
+      }
+      e.cd = LUNGE_WINDUP;
+    },
+    // cells the dash will sweep next turn (for the renderer warning lane)
+    telegraph: (e) => {
+      if (e.cd !== 0 || e.face == null) return [];
+      const cells = []; let r = e.r, c = e.c;
+      for (let i = 0; i < LUNGE_DASH; i++) {
+        const [dr, dc] = D(r)[e.face]; r += dr; c += dc;
+        if (r < 0 || r >= R || c < 0 || c >= C) break;
+        cells.push({ r, c });
+      }
+      return cells;
+    },
+  },
+};
+
 // ─── Main tick (handles both modes) ────────────────────────────
 const tick = (s, nr, nc) => {
   if (s.ov || s.win) return s;
@@ -278,15 +351,18 @@ const tick = (s, nr, nc) => {
     evts.push({ ty: 'gem', r: gemAt.r, c: gemAt.c, val: gv });
   }
 
-  // ── enemies chase player's final cell (half-speed: every other turn) ──
-  if (s.fz <= 0 && enemies.length && (s.t % 2 === 1)) {
+  // ── enemies act via ENEMY_KINDS registry; freeze pauses them ──
+  const dashCells = []; // cells swept by lunge dashes this turn (lethal)
+  if (s.fz <= 0 && enemies.length) {
     const moved = [];
+    const ctx = { t: s.t, player: { r: finalR, c: finalC }, block, others: moved, passed: dashCells };
     for (const e of enemies) {
-      const np2pos = stepToward(e, { r: finalR, c: finalC }, block, moved);
-      e.r = np2pos.r; e.c = np2pos.c;
+      (ENEMY_KINDS[e.kind] || ENEMY_KINDS.chase).step(e, ctx);
       moved.push(e);
     }
   }
+  // merge boss-summoned adds AFTER movement (they don't act on spawn turn)
+  if (spawnedEnemies.length) enemies = [...enemies, ...spawnedEnemies];
 
   // ── lasers: telegraph (charge) then fire down the full column ──
   let laserHit = false;
@@ -305,7 +381,8 @@ const tick = (s, nr, nc) => {
   // ── collision ──
   const hitBullet = mv.some(b =>
     b.r === finalR && b.c === finalC && (b.fuse == null || b.fuse === 0));
-  const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC);
+  const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC)
+    || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
   const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit;
 
@@ -404,6 +481,7 @@ Object.assign(window, {
     hc, hp, D, hd,
     PAT, EP, HP, rp, DL,
     safest, tryItem, stepToward, tick,
+    ENEMY_KINDS, pickFace,
     doUndo, doBomb, doFreeze,
     initState,
   },
