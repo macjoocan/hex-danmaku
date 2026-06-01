@@ -9,7 +9,7 @@ const Stars = ({ n, size = 'sm' }) => (
 );
 
 // ─── Mode-select menu ──────────────────────────────────────────
-const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless }) => (
+const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor }) => (
   <div className="screen menu">
     <div className="menu-logo">
       <div className="logo-pips">
@@ -39,6 +39,14 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless }) => (
           <span className="mb-desc">끝없이 쏟아지는 탄막 · 최고점 도전</span>
         </span>
         <span className="mb-meta">HI {String(hi).padStart(5, '0')}</span>
+      </button>
+      <button className="mode-btn editor" onClick={onEditor}>
+        <span className="mb-ico">✎</span>
+        <span className="mb-text">
+          <span className="mb-name">에디터</span>
+          <span className="mb-desc">스테이지 · 밸런스 · 리소스 편집</span>
+        </span>
+        <span className="mb-meta">DEV</span>
       </button>
     </div>
 

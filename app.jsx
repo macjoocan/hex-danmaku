@@ -8,7 +8,7 @@ const {
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
-  MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars,
+  MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
 } = window;
 
 // ─── Hex cell ─────────────────────────────────────────────────
@@ -117,7 +117,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
   // stage clear → save stars
   useEffect(() => {
-    if (isStage && g.win) {
+    if (isStage && g.win && !g._test) {
       const sNum = HXS.rateStage(g);
       setEarned(sNum);
       setStars(HXS.saveStars(g.stage.id, sNum));
@@ -509,6 +509,8 @@ function App() {
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); }, []);
+  const toEditor = useCallback(() => { setG(null); setScreen('editor'); }, []);
+  const testPlay = useCallback((def) => { setG({ ...HXS.initStageDef(def, def.stageIdx ?? 0), _test: true }); setScreen('play'); setRunId(n => n + 1); }, []);
   const retry = useCallback(() => {
     setG(cur => (cur ? (cur.mode === 'stage' ? HXS.initStage(cur.stageIdx) : HX.initState()) : cur));
     setRunId(n => n + 1);
@@ -517,10 +519,13 @@ function App() {
   const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
 
   if (screen === 'menu') {
-    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toSelect} onEndless={startEndless} />;
+    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toSelect} onEndless={startEndless} onEditor={toEditor} />;
   }
   if (screen === 'select') {
     return <StageSelect stars={stars} onPick={startStage} onBack={toMenu} />;
+  }
+  if (screen === 'editor') {
+    return <EditorScreen onExit={toMenu} onTestPlay={testPlay} />;
   }
   return (
     <GameView
@@ -528,7 +533,9 @@ function App() {
       g={g} setG={setG}
       stars={stars} setStars={setStars}
       hi={hi} setHi={setHi}
-      onRetry={retry} onNext={startStage} onList={toSelect} onMenu={toMenu}
+      onRetry={retry} onNext={startStage}
+      onList={g && g._test ? toEditor : toSelect}
+      onMenu={g && g._test ? toEditor : toMenu}
     />
   );
 }
