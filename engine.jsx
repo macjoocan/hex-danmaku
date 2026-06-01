@@ -157,7 +157,7 @@ const tick = (s, nr, nc) => {
   const hist = { ...s, evts: [] };
   const combo = stay ? 0 : Math.min(s.combo + 1, 20);
 
-  const stepIn = !stay && s.bl.some(b => b.r === nr && b.c === nc);
+  const stepIn = !stay && s.bl.some(b => b.r === nr && b.c === nc && (b.fuse == null || b.fuse <= 1));
   const stepEnemy = !stay && (s.enemies || []).some(e => e.r === nr && e.c === nc);
 
   // ── bullet motion + spawn ──
@@ -165,6 +165,7 @@ const tick = (s, nr, nc) => {
   let bossWaves = s.bossWaves || 0;
   let lasers = (s.lasers || []).map(l => ({ ...l }));
   const spawnedLasers = [];
+  const spawnedEnemies = [];
   const bossTotal = (isStage && s.stage && s.stage.bossTotal) || 0;
   const bossDone = isStage && s.obj && s.obj.type === 'boss' && bossWaves >= bossTotal;
 
@@ -173,17 +174,37 @@ const tick = (s, nr, nc) => {
     fz = s.fz - 1;
   } else {
     mv = s.bl
-      .map(b => ({ r: b.r + 1, c: b.c }))
-      .filter(b => b.r < R && !block.some(w => w.r === b.r && w.c === b.c));
+      .map(b => {
+        if (b.fuse != null) return { ...b, fuse: b.fuse - 1 }; // timed mine: counts down in place
+        let vc = b.vc || 0;
+        let nc = b.c + vc;
+        if (b.bounce && (nc < 0 || nc >= C)) { vc = -vc; nc = b.c + vc; } // reflect at edge
+        const out = { ...b, r: b.r + 1, c: nc };
+        if (vc) out.vc = vc; // keep vc only if non-zero (clean equality in tests)
+        return out;
+      })
+      .filter(b =>
+        b.fuse != null
+          ? b.fuse >= 0                                       // detonated (fuse 0) kept this turn, removed next
+          : (b.r < R && b.c >= 0 && b.c < C && !block.some(w => w.r === b.r && w.c === b.c)));
     fz = 0;
     si = s.si - 1;
     if (si <= 0 && !bossDone) {
       const goalR = s.goal ? s.goal.r : -99;
       const goalC = s.goal ? s.goal.c : -99;
-      const cols = s.np.c.filter(c =>
-        !block.some(w => w.r === 0 && w.c === c) && !(goalR === 0 && c === goalC));
-      mv = [...mv, ...cols.map(c => ({ r: 0, c }))];
+      if (s.np.cells) {
+        // explicit cells (e.g., mark mines) — may carry fuse/vc
+        mv = [...mv, ...s.np.cells
+          .filter(cell => cell.r >= 0 && cell.r < R && cell.c >= 0 && cell.c < C
+            && !block.some(w => w.r === cell.r && w.c === cell.c))
+          .map(cell => ({ ...cell }))];
+      } else {
+        const cols = s.np.c.filter(c =>
+          !block.some(w => w.r === 0 && w.c === c) && !(goalR === 0 && c === goalC));
+        mv = [...mv, ...cols.map(c => (s.np.vc != null ? { r: 0, c, vc: s.np.vc } : { r: 0, c }))];
+      }
       if (s.np.laser) s.np.laser.forEach(c => spawnedLasers.push({ c, charge: 2 }));
+      if (s.np.summon) spawnedEnemies.push({ ...s.np.summon });
       ln = s.np.n;
       if (isStage && s.obj && s.obj.type === 'boss') bossWaves++;
       np = s.np2;
@@ -282,7 +303,8 @@ const tick = (s, nr, nc) => {
   lasers = [...liveLasers, ...spawnedLasers];
 
   // ── collision ──
-  const hitBullet = mv.some(b => b.r === finalR && b.c === finalC);
+  const hitBullet = mv.some(b =>
+    b.r === finalR && b.c === finalC && (b.fuse == null || b.fuse === 0));
   const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
   const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit;
