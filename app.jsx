@@ -7,6 +7,7 @@ const {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
+  BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
   MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars,
 } = window;
 
@@ -23,6 +24,8 @@ const Cell = ({ r, c, state, onClick }) => {
   else if (state.goal) { fill = '#1e1442'; stroke = '#a78bfa'; strokeW = 2.5; }
   else if (state.bullet) { fill = '#3a1822'; stroke = '#fb7185'; strokeW = 2; }
   else if (state.spike) { fill = '#2e1217'; stroke = '#b91c1c'; strokeW = 1.8; }
+  else if (state.crack) { fill = '#05060f'; stroke = '#2a2e58'; strokeW = 1.8; }
+  else if (state.pad) { fill = '#13402c'; stroke = '#34d399'; strokeW = 1.6; }
   else if (state.danger && state.preview) { fill = '#3a2a18'; stroke = '#fbbf24'; strokeW = 2; }
   else if (state.danger) { fill = '#3a1d18'; stroke = '#fb7185'; strokeW = 1.8; }
   else if (state.preview) { fill = '#3a2a18'; stroke = '#fbbf24'; strokeW = 1.5; }
@@ -193,7 +196,9 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   const wallSet = useMemo(() => new Set((g.walls || []).map(w => `${w.r},${w.c}`)), [g.walls]);
   const turretSet = useMemo(() => new Set((g.turrets || []).map(t => `${t.r},${t.c}`)), [g.turrets]);
   const spikeSet = useMemo(() => new Set((g.spikes || []).map(sp => `${sp.r},${sp.c}`)), [g.spikes]);
-  const blockSet = useMemo(() => { const s = new Set(wallSet); turretSet.forEach(k => s.add(k)); return s; }, [wallSet, turretSet]);
+  const crackSet = useMemo(() => new Set((g.cracks || []).filter(c => c.broken).map(c => `${c.r},${c.c}`)), [g.cracks]);
+  const padSet = useMemo(() => new Set((g.pads || []).map(p => `${p.r},${p.c}`)), [g.pads]);
+  const blockSet = useMemo(() => { const s = new Set(wallSet); turretSet.forEach(k => s.add(k)); crackSet.forEach(k => s.add(k)); return s; }, [wallSet, turretSet, crackSet]);
   // laser telegraph: column -> charge (1 = imminent, 2 = warning)
   const laserCols = useMemo(() => { const m = new Map(); (g.lasers || []).forEach(l => m.set(l.c, Math.min(m.get(l.c) ?? 9, l.charge))); return m; }, [g.lasers]);
   // turret muzzle: cell that fires NEXT turn
@@ -229,6 +234,16 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   }, [g.np, g.si, g.fz, g.ht]);
 
   const bulletSet = useMemo(() => { const m = new Map(); g.bl.forEach(b => m.set(`${b.r},${b.c}`, b)); return m; }, [g.bl]);
+  // fuse mines live inside g.bl; map cell -> fuse (0 = armed/lethal this turn, >0 = telegraph)
+  const mineMap = useMemo(() => { const m = new Map(); g.bl.forEach(b => { if (b.fuse != null) m.set(`${b.r},${b.c}`, b.fuse); }); return m; }, [g.bl]);
+  // lunge dash lanes (warning) from enemies about to dash
+  const lungeWarn = useMemo(() => {
+    const set = new Set();
+    (g.enemies || []).forEach(e => {
+      if (e.kind === 'lunge') (HX.ENEMY_KINDS.lunge.telegraph(e) || []).forEach(p => set.add(`${p.r},${p.c}`));
+    });
+    return set;
+  }, [g.enemies]);
   const itemMap = useMemo(() => { const m = new Map(); g.its.forEach(i => m.set(`${i.r},${i.c}`, i)); return m; }, [g.its]);
   const goalKey = g.goal ? `${g.goal.r},${g.goal.c}` : null;
 
@@ -237,17 +252,21 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
     const k = `${r},${c}`;
     const player = g.pl.r === r && g.pl.c === c;
     const lc = laserCols.get(c);
+    const mineFuse = mineMap.get(k);   // undefined | 0 (armed) | >0 (telegraph)
+    const isTeleMine = mineFuse > 0;
     const st = {
       player, dead: player && g.ov,
-      bullet: bulletSet.has(k),
+      bullet: bulletSet.has(k) && !isTeleMine,
       item: itemMap.has(k),
-      danger: dangerSet.has(k),
+      danger: dangerSet.has(k) || lungeWarn.has(k) || isTeleMine,
       preview: previewSet.has(k),
       move: !player && moveSet.has(k),
       exploding: xCells.has(k),
       wall: wallSet.has(k),
       turret: turretSet.has(k),
       spike: spikeSet.has(k),
+      crack: crackSet.has(k),
+      pad: padSet.has(k),
       turretWarn: turretWarnSet.has(k),
       laser1: lc === 1,
       laser2: lc === 2,
@@ -338,6 +357,10 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           <g style={{ pointerEvents: 'none' }}>
             {(g.walls || []).map((w, i) => { const { x, y } = hc(w.r, w.c); return <WallSprite key={`w-${i}`} x={x} y={y} />; })}
 
+            {(g.cracks || []).map((cr, i) => { const { x, y } = hc(cr.r, cr.c); return <CrackSprite key={`cr-${i}`} x={x} y={y} broken={cr.broken} />; })}
+
+            {(g.pads || []).map((p, i) => { const { x, y } = hc(p.r, p.c); return <PadSprite key={`pad-${i}`} x={x} y={y} dir={p.dir} />; })}
+
             {(g.spikes || []).map((sp, i) => { const { x, y } = hc(sp.r, sp.c); return <SpikeSprite key={`sp-${i}`} x={x} y={y} />; })}
 
             {(g.turrets || []).map((t, i) => { const { x, y } = hc(t.r, t.c); return <TurretSprite key={`tt-${i}`} x={x} y={y} warn={turretWarnSet.has(`${t.r + 1},${t.c}`)} />; })}
@@ -362,10 +385,16 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
             {g.bl.map((b, i) => {
               const k = `${b.r},${b.c}`; if (xCells.has(k)) return null;
               const { x, y } = hc(b.r, b.c);
+              if (b.fuse != null) return <MineSprite key={`b-${i}`} x={x} y={y} armed={b.fuse === 0} />;
               return <BulletSprite key={`b-${i}`} x={x} y={y} fz={g.fz > 0} />;
             })}
 
-            {(g.enemies || []).map((en, i) => { const { x, y } = hc(en.r, en.c); return <ChaserSprite key={`e-${i}`} x={x} y={y} />; })}
+            {(g.enemies || []).map((en, i) => {
+              const { x, y } = hc(en.r, en.c);
+              if (en.kind === 'bounce') return <BouncerSprite key={`e-${i}`} x={x} y={y} />;
+              if (en.kind === 'lunge') return <LungerSprite key={`e-${i}`} x={x} y={y} charging={en.cd === 0} />;
+              return <ChaserSprite key={`e-${i}`} x={x} y={y} />;
+            })}
 
             {(() => { const { x, y } = hc(g.pl.r, g.pl.c); return <PlayerSprite x={x} y={y} dead={g.ov} face={playerFace} moved={playerMoved} hopKey={g.t} />; })()}
 
@@ -456,6 +485,8 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {isStage && (g.enemies || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#c026d3' }}></span>추적자</div>}
           {isStage && (g.walls || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#565c98' }}></span>벽</div>}
           {isStage && (g.spikes || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#b91c1c' }}></span>가시 ◆</div>}
+          {isStage && (g.cracks || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#2a2440' }}></span>부서지는 발판</div>}
+          {isStage && (g.pads || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>컨베이어</div>}
           {isStage && (g.turrets || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#94a3b8' }}></span>포대 ▲</div>}
           {isStage && (g.stage.type === 'boss' || (g.lasers || []).length > 0) && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>광선 ✦</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>폭탄 ✸</div>}
