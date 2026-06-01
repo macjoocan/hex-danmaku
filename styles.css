@@ -879,3 +879,58 @@ body::before {
 @keyframes minePulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
 .mine-pulse { animation: minePulse 0.7s ease-in-out infinite; }
 .mine-armed { animation: minePulse 0.2s ease-in-out infinite; }
+
+/* ─── Editor ─────────────────────────────────────────────── */
+.mode-btn.editor .mb-ico { color: #a78bfa; }
+.screen.editor { display: flex; flex-direction: column; height: 100%; min-height: 100vh; }
+.ed-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #2a2e58; flex-wrap: wrap; }
+.ed-title { font-weight: 700; color: #cdeafe; }
+.ed-tabs, .ed-io { display: flex; gap: 6px; }
+.ed-tab, .ed-tool, .ed-btn, .res-item, .stage-litem, .res-kind button, .pool-keys button, .phase-row select, .phase-row button {
+  background: #1c1f3e; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px;
+}
+.ed-tab.on, .ed-tool.on, .res-item.on, .stage-litem.on, .res-kind button.on, .pool-keys button.on { background: #1f3a48; border-color: #38bdf8; }
+.ed-btn.primary { background: #1f3a48; border-color: #38bdf8; }
+.ed-btn:disabled, .res-kind button:disabled { opacity: 0.4; cursor: default; }
+.ed-flash { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); background: #0c2942; color: #cdeafe; padding: 6px 14px; border-radius: 6px; z-index: 40; border: 1px solid #38bdf8; }
+.ed-warn { color: #fb7185; font-size: 12px; margin: 4px 0; }
+.ed-body { flex: 1; overflow: auto; padding: 12px; }
+.ed-pane { color: #cdeafe; }
+.ed-row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+
+/* balance */
+.bal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.bal-field { display: grid; grid-template-columns: 120px 1fr 64px; align-items: center; gap: 8px; }
+.bal-label { font-size: 12px; color: #9fb0d8; }
+.bal-num { width: 60px; background: #14172e; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 4px; padding: 2px 4px; }
+
+/* resource */
+.res-pane, .stage-pane { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.res-list, .stage-list { display: flex; flex-direction: column; gap: 4px; min-width: 130px; max-height: 70vh; overflow: auto; }
+.res-edit { flex: 1; min-width: 240px; }
+.res-kind, .res-palette { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0; }
+.res-grid { display: inline-block; border: 1px solid #2a2e58; }
+.res-grid-row { display: flex; }
+.res-px { width: 15px; height: 15px; padding: 0; border: 1px solid #0e0f23; cursor: pointer; }
+.res-image-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.res-imgf { display: grid; grid-template-columns: 60px 1fr; gap: 6px; align-items: center; }
+.res-imgf input { background: #14172e; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 4px; padding: 2px 4px; }
+
+/* stage */
+.stage-canvas { display: flex; flex-direction: column; gap: 8px; }
+.ed-palette { display: flex; gap: 4px; flex-wrap: wrap; max-width: 320px; }
+.ed-board { background: #0e0f23; border: 1px solid #2a2e58; border-radius: 8px; }
+.stage-actions { display: flex; gap: 6px; }
+.stage-props { min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
+.pf { display: grid; grid-template-columns: 80px 1fr; gap: 6px; align-items: center; }
+.pf input, .pf select { background: #14172e; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 4px; padding: 2px 4px; }
+.pf-pool, .pf-phases { display: flex; flex-direction: column; gap: 4px; }
+.pool-keys { display: flex; gap: 4px; flex-wrap: wrap; }
+.phase-row { display: flex; gap: 4px; align-items: center; }
+.ph-name { width: 80px; } .ph-turns { width: 48px; }
+.phase-row input { background: #14172e; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 4px; padding: 2px 4px; }
+
+/* export/import */
+.ed-io-panel { position: absolute; right: 12px; top: 52px; background: #14172e; border: 1px solid #2a2e58; padding: 8px; border-radius: 8px; z-index: 30; }
+.ed-io-panel textarea { width: 320px; height: 180px; background: #0e0f23; color: #cdeafe; border: 1px solid #2a2e58; border-radius: 4px; font-family: monospace; font-size: 11px; }
+.ed-io-actions { display: flex; gap: 6px; margin-top: 6px; }
