@@ -106,8 +106,60 @@ const TurretSprite = ({ x, y, warn }) => (
   <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }}>{drawArt('turret', { warn })}</g>
 );
 
+// Bouncer — pixel diamond + shadow + spin
+const BouncerSprite = ({ x, y }) => (
+  <g transform={`translate(${x},${y})`}>
+    <ellipse cx="0" cy="9" rx="7" ry="2" fill="#06121f" opacity="0.4" />
+    <g className="chaser-pulse">{drawArt('bouncer')}</g>
+  </g>
+);
+
+// Lunger — pixel + shadow; charging class when about to dash
+const LungerSprite = ({ x, y, charging }) => (
+  <g transform={`translate(${x},${y})`}>
+    <ellipse cx="0" cy="9" rx="7" ry="2" fill="#2a1206" opacity="0.4" />
+    <g className={charging ? 'lunger-charge' : undefined}>{drawArt('lunger')}</g>
+  </g>
+);
+
+// Conveyor pad — arrow rotated to its direction
+// dir index [W,E,NW,NE,SW,SE] -> approx degrees (art points east=0deg)
+const PAD_DEG = [180, 0, -120, -60, 120, 60];
+const PadSprite = ({ x, y, dir = 1 }) => (
+  <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }}>
+    <g transform={`rotate(${PAD_DEG[dir] || 0})`}>{drawArt('pad')}</g>
+  </g>
+);
+
+// Fuse mine telegraph
+const MineSprite = ({ x, y, armed }) => (
+  <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }}>
+    <g className={armed ? 'mine-armed' : 'mine-pulse'}>{drawArt('mine', { warn: armed })}</g>
+  </g>
+);
+
+// Breakable floor — intact (cracked lines) vs broken (hole)
+const CrackSprite = ({ x, y, broken }) => {
+  const { hp, SZ } = window.HX;
+  if (broken) {
+    return (
+      <g style={{ pointerEvents: 'none' }}>
+        <path d={hp(x, y, SZ - 2)} fill="#0a0c1c" stroke="#2a2e58" strokeWidth="2" strokeLinejoin="miter" />
+        <path d={hp(x, y, SZ - 7)} fill="#05060f" />
+      </g>
+    );
+  }
+  return (
+    <g style={{ pointerEvents: 'none' }}>
+      <path d={hp(x, y, SZ - 3)} fill="#2a2440" stroke="#6b5e3a" strokeWidth="1.5" strokeDasharray="3 2" strokeLinejoin="miter" />
+      <path d={`M${x - 8},${y - 6} L${x + 2},${y + 1} L${x - 3},${y + 8}`} fill="none" stroke="#6b5e3a" strokeWidth="1" />
+    </g>
+  );
+};
+
 Object.assign(window, {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
+  BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
 });
