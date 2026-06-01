@@ -793,3 +793,102 @@ useEffect(() => {
 | `drawArt(name,{warn})` | 레지스트리 항목 → SVG |
 | `px(grid,map,p,cx,cy,stroke)` | 픽셀 grid → `<rect>` 배열 |
 | `isImage(name)` | 이미지 교체 여부 |
+
+---
+
+# 확장팩 1탄 & 에디터 (2026-06 추가)
+
+> 아래는 확장팩 1탄(신규 탄/적/기믹/보스 패턴 + 스테이지 리워크)과 인게임 에디터에서 추가된 시스템 요약.
+> 상세 설계는 `docs/superpowers/specs/2026-05-31-*.md`, 구현 계획은 `docs/superpowers/plans/2026-05-31-*.md` 참고.
+
+## 파일 / 로드 순서 (갱신)
+
+```
+engine → stages → resources → sprites → editor-core → screens → editor → app
+```
+
+| 추가 파일 | 네임스페이스 | 역할 |
+|-----------|--------------|------|
+| `editor-core.jsx` | `window.HXE`, `window.HXB` | 순수 데이터 레이어 — `BAL` 병합, 오버라이드 적용, export/import, `validateStage`. 로드 시 `applyOverrides()` 실행 |
+| `editor.jsx` | `EditorScreen` | 에디터 UI (밸런스/리소스/스테이지 3탭) |
+| `tests/` | — | Node `node:test` + `node:vm` 단위 테스트(엔진/스테이지/데이터레이어/공정성). `npm test` |
+
+## 1. 새 탄막 움직임 — 탄 객체 필드
+
+탄은 `{ r, c }` → `{ r, c, vc?, bounce?, fuse? }`. 필드 없으면 기존 직하와 동일.
+
+| 필드 | 동작 |
+|------|------|
+| `vc` | 열 속도 — 매 턴 `c += vc` (대각 드리프트) |
+| `bounce` | 가장자리에서 `vc` 부호 반전 (지그재그) |
+| `fuse` | 지연 지뢰 — 제자리에서 카운트다운, `fuse===0` 턴에만 치명 후 다음 턴 소멸. `fuse>0`은 무해한 예고 |
+
+충돌: `hitBullet`은 `b.fuse == null || b.fuse === 0`일 때만. `stepIn`도 fuse 가드.
+
+## 2. 적 AI 레지스트리 — `ENEMY_KINDS` (engine)
+
+적 이동은 `ENEMY_KINDS[e.kind].step(e, ctx)`로 디스패치. `ctx = { t, player, block, others, passed }`.
+
+| kind | 상태 필드 | 동작 |
+|------|-----------|------|
+| `chase` | — | 반속(`t % chaseEvery === chaseEvery-1`) 그리디 추적 (기존) |
+| `bounce` | `dir` | 고정 방향 직선 1칸/턴, 벽·가장자리 반사(`REFLECT`) |
+| `lunge` | `cd`, `face` | `lungeWindup`턴 충전(예고) → `lungeDash`칸 돌진. 돌진 경로(`ctx.passed`)도 치명 |
+
+`ENEMY_KINDS.lunge.telegraph(e)` → `cd===0`일 때 돌진 예정 레인 셀(렌더 경고용). 보스 `summon`이 적을 생성해 합류시킴(`spawnedEnemies`).
+
+## 3. 필드 기믹 — `crack` / `pad`
+
+`GIMMICKS` 메타 테이블 + tick 내 인라인 처리.
+
+- **`cracks: [{r,c,broken}]`** — 부서지는 발판. 밟고 **떠나면** `broken=true` → 이후 `block`에 포함(이동·탄막 차단). 치명 아님.
+- **`pads: [{r,c,dir}]`** — 컨베이어. 진입 시 충돌/아이템 판정 **전에** `dir` 방향 1칸 밀림(1회, 벽/범위면 밀림 없음).
+
+## 4. 새 보스 공격 — `bossAtk` (stages)
+
+| type | 동작 | 시연 |
+|------|------|------|
+| `spiral` | every-3rd 열 발사(ping 오프셋), 안전열 4~5개가 1/웨이브 회전 | 회전 빗살 |
+| `drift` | 교차 빗살 + `vc`(대각) | 드리프트 탄 |
+| `mark` | 플레이어 셀+좌우(3칸)에 `fuse:1` 지뢰(다음 웨이브 폭발) | 지연 지뢰 |
+| `summon` | 짝수 웨이브에 코너에서 `bounce` 적 소환, 홀수엔 조준 1발 | 적 레지스트리 |
+
+> 공정성: 모든 신규 보스 패턴·리워크 스테이지는 `tests/fairness.test.mjs`의 시뮬레이션(멀티시드 + 2-ply 룩어헤드)으로 "매 턴 안전 이동 존재"를 보장. **모바일 적이 있는 스테이지는 연속 안전구역 패턴**(twin/center/edges/wall)을 써야 회피 통로가 보장됨(고립 안전열 comb/rdiag는 모바일 적과 함께 쓰면 트랩 위험).
+
+## 5. 밸런스 설정 — `window.HXB` (`DEFAULT_BAL`, engine)
+
+스킬 비용·점수·아이템 확률·적 속도·난이도 임계값을 테이블화. engine은 `bal()`로 읽고 `window.HXB` 미설정 시 `DEFAULT_BAL` 폴백(테스트/단독 로드 안전).
+
+```js
+BAL = { skill:{undoCost,bombCost,bombRadius,freezeCost,freezeTurns},
+        score:{surviveBase,comboCap,gemBase,gemCombo,starBase,starCombo},
+        item:{spawnChance,max,pSc,pBm,pTp}, enemy:{chaseEvery,lungeWindup,lungeDash},
+        endless:{diffEasy,diffNormal,diffHard} }
+```
+
+## 6. 에디터 & 오버라이드 레이어
+
+메뉴 → **에디터**(✎). 3탭: **밸런스**(슬라이더 즉시 적용) · **리소스**(픽셀 페인트/이미지 스왑) · **스테이지**(헥스 보드 배치 + 속성/보스 페이즈 + 테스트플레이 + 검증).
+
+- 저장: localStorage 키 `hex_edit_stages` / `hex_edit_balance` / `hex_edit_res`. 부팅 시 `HXE.applyOverrides()`가 `STAGES`·`RES`·`HXB`에 병합 → 게임·에디터 동일 데이터.
+- export/import: `HXE.serializeOverrides()` / `importOverrides(json)`(스키마 검증, 원자적). 소스 영구 반영은 export JSON을 `stages.jsx`/`resources.jsx`에 수동 반영.
+- 커스텀 스테이지: `id >= 1000`, 항상 잠금 해제. 테스트 플레이는 별점 미저장(`g._test`).
+- `validateStage(def)`: 공정성 시뮬레이션(엔진 오류도 try/catch로 안전) → 경고 리포트.
+
+## 7. 리워크된 스테이지 (6곳)
+
+| # | 추가 |
+|---|------|
+| 5 미궁 | 부서지는 발판(crack) |
+| 8 추격전 | 반사체(bounce) 적 |
+| 10 봉쇄선 | 컨베이어(pad) |
+| 12 폭풍전야 | 돌격수(lunge) + 연속 안전구역 풀 |
+| 11 포격수 (보스) | 소환·사선포화 페이즈 (bossTotal 22) |
+| 19 포식자 (보스) | 각인탄·나선탄 페이즈 (bossTotal 20) |
+
+## 8. 알려진 이슈 / 메모
+
+- **보스 존재감(2탄 후보)**: 현재 보스는 스크립트된 버티기 체감. 2탄에서 보스 스프라이트 + HP 드레인 + 페이즈 배너 예정.
+- `pad`와 필드 아이템 픽업 셀 차이는 엔드리스에 아이템이 없어 무관(스테이지엔 pad만).
+- 보스 승리(`bossWaves >= bossTotal && mv.length === 0`)는 잔존 소환 적을 막지 않음.
+- 시각(렌더링/에디터 UI)은 브라우저 수동 검증 영역. 로직은 `npm test`(57개)로 검증.
