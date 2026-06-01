@@ -43,3 +43,10 @@ export function loadGame({ seed = 1 } = {}) {
 export function baseState(HX, over = {}) {
   return { ...HX.initState(), ...over };
 }
+
+// Normalize a vm-sandbox value into a host-realm plain value (JSON round-trip).
+// Use for structural comparisons: `assert.deepEqual(plain(n.bl[0]), { r: 6, c: 4 })`.
+// The sandbox is a separate realm, so deepStrictEqual on raw sandbox objects/arrays
+// fails on prototype identity even when contents match. Do NOT use plain() for
+// identity checks like `assert.equal(n, s)` — wrapping would break reference equality.
+export const plain = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
