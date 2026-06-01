@@ -70,9 +70,10 @@ const bossAtk = (atk, s) => {
       return { n: atk.name || '광선', c: [], laser: [lc] };
     }
     case 'spiral': {
-      // rotating "comb": every 3rd column (offset by ping) is safe; safe set drifts 1/wave
+      // rotating comb: FIRES every 3rd column (offset by ping), leaving 4-5 safe;
+      // the fired set drifts 1/wave so a player can always step to an adjacent safe column.
       const ph = ping(w);
-      return { n: atk.name || '나선탄', c: allCols.filter(c => (((c - ph) % 3) + 3) % 3 !== 0) };
+      return { n: atk.name || '나선탄', c: allCols.filter(c => (((c - ph) % 3) + 3) % 3 === 0) };
     }
     case 'drift': {
       // diagonal volley: alternating comb with a sideways velocity
