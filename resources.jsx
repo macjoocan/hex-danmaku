@@ -153,6 +153,34 @@ const SPIKE_MAP = { T: '#fca5a5', X: '#b91c1c' };
 const TURRET = ['.XGGGGX.', 'XGHHHHGX', 'XGHHHHGX', 'XGGGGGGX', '.XMMXM..', '..XBBX..', '..XBBX..', '...XX...'];
 const TURRET_MAP = { G: '#475569', H: '#94a3b8', M: '#334155', B: '#64748b', X: '#1e293b' };
 
+// Bouncer enemy (sharp diamond, distinct from the magenta chaser blob)
+const BOUNCER_MAP = { o: '#0c2a3a', X: '#22d3ee', H: '#a5f3fc', e: '#0e7490' };
+const BOUNCER = [
+  '...XX...', '..XHHX..', '.XHXXHX.', 'XHXeeXHX',
+  'XHXeeXHX', '.XHXXHX.', '..XHHX..', '...XX...',
+];
+
+// Lunger enemy (arrow-like charger)
+const LUNGER_MAP = { o: '#3a1a0a', X: '#fb923c', H: '#fed7aa', e: '#7c2d12' };
+const LUNGER = [
+  '...XX...', '..XHHX..', '.XHHHHX.', 'XHHeeHHX',
+  'XHHHHHHX', '.XXHHXX.', '..X..X..', '.X....X.',
+];
+
+// Conveyor pad arrow (drawn pointing east at dir 1; rotated per dir in the sprite)
+const PAD_MAP = { o: '#1e3a2a', A: '#34d399', H: '#bbf7d0' };
+const PAD = [
+  '........', '...A....', '...AA...', 'AAAAAAH.',
+  'AAAAAAH.', '...AA...', '...A....', '........',
+];
+
+// Fuse mine (telegraph marker, pulses while armed)
+const MINE_MAP = { o: '#3a0a14', X: '#fbbf24', H: '#fde68a', e: '#7c2d12' };
+const MINE = [
+  '..o..o..', '.oXXXXo.', 'oXHHHHXo', 'oXHeeHXo',
+  'oXHeeHXo', 'oXHHHHXo', '.oXXXXo.', '..o..o..',
+];
+
 // ─── THE REGISTRY ──────────────────────────────────────────────────────────
 const RES = {
   player:  { kind: 'pixel', grid: HERO,    map: HERO_MAP,    px: 2.4, ox: 5.5, oy: 8 },
@@ -166,6 +194,12 @@ const RES = {
   portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 2.4 },
   gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 2.5, warnStroke: true },
   chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 2.5 },
+  bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 2.5 },
+  lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 2.5 },
+  pad:     { kind: 'pixel', grid: PAD,     map: PAD_MAP,     px: 2.4 },
+  mine:    { kind: 'pixel', grid: MINE,    map: MINE_MAP,    px: 2.4, warnStroke: true },
+  // crack is vector (drawn in the sprite by broken state)
+  crack:   { kind: 'vector' },
   spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 2.4 },
   turret:  { kind: 'pixel', grid: TURRET,  map: TURRET_MAP,  px: 2.4, warnMap: { B: '#fca5a5' } },
   // wall is vector by default (see note up top); set kind:'image' here to swap it.
