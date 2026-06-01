@@ -16,14 +16,17 @@ function safeMoves(HX, s) {
 }
 const hasSafeMove = (HX, s) => safeMoves(HX, s).length > 0;
 
-// smart dodge: among safe moves pick the one with the MOST safe follow-ups
-// (1-ply lookahead) so a greedy sim doesn't corner itself into a false failure.
+// smart dodge with 2-ply lookahead: among safe moves prefer ones that keep a
+// 2-turn survival path open (so the sim respects telegraphed threats like the
+// lunge dash and doesn't self-corner into a false "unfair" failure).
 function bestNext(HX, s) {
   const moves = safeMoves(HX, s);
   if (!moves.length) return null;
   let best = moves[0], bestScore = -1;
   for (const n of moves) {
-    const score = safeMoves(HX, n).length;
+    const followups = safeMoves(HX, n);
+    const survivable = followups.filter(m => hasSafeMove(HX, m)).length; // 2-turn-safe follow-ups
+    const score = survivable * 100 + followups.length;                   // prioritize survival, then breadth
     if (score > bestScore) { bestScore = score; best = n; }
   }
   return best;
@@ -52,5 +55,23 @@ test('boss attack summon always leaves a safe move', () => bossSurvives('summon'
 // also re-validate the pre-existing always-dodgeable boss attacks under the same sim
 test('boss attack sweepGap always leaves a safe move', () => bossSurvives('sweepGap', { turns: 24 }));
 test('boss attack full always leaves a safe move', () => bossSurvives('full', { turns: 24 }));
+
+// drive a real stage (greedy smart-dodge) and assert a safe move always exists.
+function stageSurvives(idx, { seed = 5, turns = 30 } = {}) {
+  const { HX, HXS } = loadGame({ seed });
+  let s = HXS.initStage(idx);
+  for (let i = 0; i < turns && !s.ov && !s.win; i++) {
+    assert.ok(hasSafeMove(HX, s), `stage idx ${idx} turn ${s.t}: no safe move (unfair)`);
+    const n = bestNext(HX, s);
+    if (!n) break;
+    s = n;
+  }
+}
+// reworked general stages: ids 5,8,10,12 -> indexes 4,7,9,11 (pool is RNG, so try seeds)
+for (const idx of [4, 7, 9, 11]) for (const seed of [1, 5, 7])
+  test(`reworked stage index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 30 }));
+// reworked bosses: ids 11,19 -> indexes 10,18 (full fight ~ bossTotal*interval turns)
+for (const idx of [10, 18]) for (const seed of [3, 9, 11])
+  test(`reworked boss index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 50 }));
 
 export { safeMoves, hasSafeMove, bestNext };

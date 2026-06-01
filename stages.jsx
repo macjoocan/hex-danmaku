@@ -81,9 +81,13 @@ const bossAtk = (atk, s) => {
       return { n: atk.name || '사선 포화', c: cols, vc: (w % 2) ? 1 : -1 };
     }
     case 'mark': {
-      // telegraph the player's cell + neighbors as fuse mines (detonate next wave)
-      const pr = s.pl.r, pc = s.pl.c;
-      const spots = [{ r: pr, c: pc }, ...D(pr).map(([dr, dc]) => ({ r: pr + dr, c: pc + dc }))]
+      // telegraph a sparse horizontal bar (player cell + W + E) as fuse mines that
+      // detonate next wave — leaves the 4 diagonal escapes open so it stays dodgeable
+      // even when clusters accumulate across the phase.
+      const pr = s.pl.r, pc = s.pl.c, dirs = D(pr);
+      const spots = [{ r: pr, c: pc },
+        { r: pr + dirs[0][0], c: pc + dirs[0][1] },   // W
+        { r: pr + dirs[1][0], c: pc + dirs[1][1] }]   // E
         .filter(p => p.r >= 0 && p.r < R && p.c >= 0 && p.c < C);
       return { n: atk.name || '각인탄', cells: spots.map(p => ({ ...p, fuse: 1 })) };
     }
@@ -162,7 +166,8 @@ const STAGES = [
     interval: 2, pool: [P.diag, P.center, P.vshape],
     goal: { r: 0, c: 5 },
     walls: [{ r: 6, c: 2 }, { r: 6, c: 3 }, { r: 4, c: 4 }, { r: 4, c: 5 }],
-    tip: '벽을 피해 길을 찾으세요. 총알도 벽에 막힙니다.',
+    cracks: [{ r: 7, c: 1 }, { r: 7, c: 5 }, { r: 5, c: 3 }, { r: 3, c: 2 }, { r: 3, c: 4 }],
+    tip: '◇ 발판은 한 번 밟고 떠나면 무너집니다. 벽 사이로 길을 미리 계획하세요.',
   },
   {
     id: 6, type: 'boss', name: 'BOSS · 파수꾼', sub: '공격을 견뎌라',
@@ -184,8 +189,8 @@ const STAGES = [
     id: 8, type: 'survive', name: '추격전', sub: '16턴 생존',
     interval: 2, pool: [P.twin, P.center, P.comb, P.rdiag],
     surviveTurns: 16,
-    enemies: [{ r: 1, c: 0, kind: 'chase' }],
-    tip: '추적자가 따라옵니다. 거리를 유지하며 버티세요.',
+    enemies: [{ r: 1, c: 0, kind: 'chase' }, { r: 5, c: 6, kind: 'bounce', dir: 0 }],
+    tip: '추적자 + 반사체. 반사체는 직선으로 튕겨다니니 경로를 읽으세요.',
   },
   {
     id: 9, type: 'collect', name: '보물고', sub: '별 6개',
@@ -202,25 +207,27 @@ const STAGES = [
     goal: { r: 0, c: 0 },
     walls: [{ r: 7, c: 3 }, { r: 5, c: 1 }, { r: 5, c: 2 }, { r: 3, c: 4 }, { r: 3, c: 5 }],
     enemies: [{ r: 1, c: 6, kind: 'chase' }],
-    tip: '벽과 추적자를 동시에 상대합니다.',
+    pads: [{ r: 6, c: 2, dir: 1 }, { r: 4, c: 4, dir: 0 }],
+    tip: '벽·추적자에 더해 ⇒ 컨베이어가 당신을 밀어냅니다. 화살표를 보고 착지 칸을 계산하세요.',
   },
   {
     id: 11, type: 'boss', name: 'BOSS · 포격수', sub: '공격을 견뎌라',
-    interval: 2, bossTotal: 18,
+    interval: 2, bossTotal: 22,
     phases: [
       { type: 'aimed', turns: 5, name: '조준 사격' },
       { type: 'sweep', turns: 5, name: '휩쓸기' },
       { type: 'pincer', turns: 4, name: '협공' },
-      { type: 'rain', n: 3, turns: 4, name: '폭우' },
+      { type: 'summon', turns: 4, name: '소환' },
+      { type: 'drift', turns: 4, name: '사선 포화' },
     ],
-    tip: '4단계 공격. 조준→휩쓸기→협공→폭우.',
+    tip: '5단계. 조준→휩쓸기→협공→소환(반사체)→사선 포화.',
   },
   {
     id: 12, type: 'survive', name: '폭풍전야', sub: '20턴 생존',
-    interval: 2, pool: [P.focus, P.barrage, P.comb, P.vshape],
+    interval: 2, pool: [P.twin, P.center, P.edges, P.rwall],
     surviveTurns: 20,
-    enemies: [{ r: 1, c: 0, kind: 'chase' }, { r: 1, c: 6, kind: 'chase' }],
-    tip: '추적자 둘 + 밀집 탄막. 20턴 버티기.',
+    enemies: [{ r: 1, c: 3, kind: 'lunge' }],
+    tip: '돌격수가 충전 후 직선으로 돌진합니다(레인 경고). 돌진 레인을 피해 20턴 생존.',
   },
   {
     id: 13, type: 'collect', name: '미로의 별', sub: '별 7개',
@@ -280,14 +287,14 @@ const STAGES = [
   },
   {
     id: 19, type: 'boss', name: 'BOSS · 포식자', sub: '새로운 공격',
-    interval: 2, bossTotal: 18,
+    interval: 2, bossTotal: 20,
     phases: [
       { type: 'spread', turns: 5, name: '확산탄' },
       { type: 'converge', turns: 5, name: '조여오기' },
-      { type: 'alternate', turns: 4, name: '교차탄' },
-      { type: 'aimed', turns: 4, name: '조준 사격' },
+      { type: 'mark', turns: 5, name: '각인탄' },
+      { type: 'spiral', turns: 5, name: '나선탄' },
     ],
-    tip: '확산·조임·교차 — 새로운 공격 패턴.',
+    tip: '확산→조임→각인(지연 폭발)→나선. 예고된 칸을 비키세요.',
   },
   {
     id: 20, type: 'normal', name: '광선 회랑', sub: '게이트까지',
