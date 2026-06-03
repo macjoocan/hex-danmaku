@@ -29,7 +29,18 @@ const writeLS = (key, val) => {
   try { if (typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(val)); } catch {}
 };
 
-const buildBalance = (patch) => deepMerge(window.HX.DEFAULT_BAL, patch || {});
+// A clamp-to->=1 for engine-timing fields. Clearing a slider yields Number('') === 0, and
+// chaseEvery:0 makes `t % 0` === NaN (chasers freeze); lungeDash:0 no-ops the dash. Guard here
+// so a bad slider/localStorage/import value can never reach the engine.
+const atLeastOne = (v) => Math.max(1, Math.floor(v) || 1); // 0/NaN/null -> 1
+const buildBalance = (patch) => {
+  const b = deepMerge(window.HX.DEFAULT_BAL, patch || {});
+  if (b.enemy) {
+    b.enemy.chaseEvery = atLeastOne(b.enemy.chaseEvery);
+    b.enemy.lungeDash = atLeastOne(b.enemy.lungeDash);
+  }
+  return b;
+};
 
 const applyStageOverrides = (baseStages, data) => {
   const overrides = (data && data.overrides) || {};
@@ -72,14 +83,17 @@ const serializeOverrides = () => JSON.stringify({
   res: readLS(HXE_LS.res, {}),
 }, null, 2);
 
+// arrays are typeof 'object', so reject them explicitly — a plain object is required for every
+// section, else a malformed array slips through and corrupts state (e.g. balance:[] makes HXB an array).
+const isPlainObject = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
 const parseOverrides = (json) => {
   const obj = JSON.parse(json); // throws on malformed JSON
-  if (!obj || typeof obj !== 'object') throw new Error('payload must be an object');
+  if (!isPlainObject(obj)) throw new Error('payload must be an object');
   const stages = obj.stages || { overrides: {}, custom: [] };
-  if (typeof stages !== 'object' || typeof (stages.overrides || {}) !== 'object' || !Array.isArray(stages.custom || []))
+  if (!isPlainObject(stages) || !isPlainObject(stages.overrides || {}) || !Array.isArray(stages.custom || []))
     throw new Error('invalid stages section');
-  if (obj.res && typeof obj.res !== 'object') throw new Error('invalid res section');
-  if (obj.balance && typeof obj.balance !== 'object') throw new Error('invalid balance section');
+  if (obj.res && !isPlainObject(obj.res)) throw new Error('invalid res section');
+  if (obj.balance && !isPlainObject(obj.balance)) throw new Error('invalid balance section');
   return { stages, balance: obj.balance || {}, res: obj.res || {} };
 };
 
@@ -91,27 +105,60 @@ const importOverrides = (json) => {
   applyOverrides();
 };
 
-// fairness/reachability heuristic via simulation; robust to engine errors on bad defs
-const validateStage = (def, { turns = 30 } = {}) => {
-  const warnings = [];
+// fairness/reachability heuristic via simulation; robust to engine errors on bad defs.
+// Mirrors tests/fairness.test.mjs: a single 1-ply greedy walk corners itself on RNG pools
+// and false-warns on fair stages, so we (a) use a 2-ply lookahead dodge that respects
+// telegraphed threats, and (b) run several trials and only warn if EVERY trial gets stuck
+// (the pool is random per run, so one unlucky roll must not condemn a fair stage).
+const validateStage = (def, { turns = 30, trials = 8 } = {}) => {
   const HX = window.HX, HXS = window.HXS;
-  try {
+  // all non-game-over next states reachable in one move (stay or a neighbor)
+  const safeMoves = (s) => {
+    const opts = [{ r: s.pl.r, c: s.pl.c }, ...HX.D(s.pl.r).map(([dr, dc]) => ({ r: s.pl.r + dr, c: s.pl.c + dc }))];
+    const res = [];
+    for (const o of opts) {
+      if (o.r < 0 || o.r >= HX.R || o.c < 0 || o.c >= HX.C) continue;
+      const n = HX.tick(s, o.r, o.c);
+      if (n !== s && !n.ov) res.push(n);
+    }
+    return res;
+  };
+  const hasSafe = (s) => safeMoves(s).length > 0;
+  // pick the move that keeps the most 2-turn-survivable follow-ups open
+  const bestNext = (s) => {
+    const moves = safeMoves(s);
+    if (!moves.length) return null;
+    let best = moves[0], bestScore = -1;
+    for (const n of moves) {
+      const followups = safeMoves(n);
+      const survivable = followups.filter(hasSafe).length;
+      const score = survivable * 100 + followups.length;
+      if (score > bestScore) { bestScore = score; best = n; }
+    }
+    return best;
+  };
+  // one greedy 2-ply playthrough; returns the failing turn, or null if it survived/won
+  const runTrial = () => {
     let s = HXS.initStageDef(def, 0);
     for (let i = 0; i < turns && !s.win && !s.ov; i++) {
-      const opts = [{ r: s.pl.r, c: s.pl.c }, ...HX.D(s.pl.r).map(([dr, dc]) => ({ r: s.pl.r + dr, c: s.pl.c + dc }))];
-      let next = null;
-      for (const o of opts) {
-        if (o.r < 0 || o.r >= HX.R || o.c < 0 || o.c >= HX.C) continue;
-        const n = HX.tick(s, o.r, o.c);
-        if (n !== s && !n.ov) { next = n; break; }
-      }
-      if (!next) { warnings.push(`턴 ${s.t}: 안전한 이동이 없음 — 불공정 가능`); break; }
-      s = next;
+      if (!hasSafe(s)) return s.t;
+      const n = bestNext(s);
+      if (!n) return s.t;
+      s = n;
     }
+    return null;
+  };
+  try {
+    let firstFailTurn = null;
+    for (let k = 0; k < trials; k++) {
+      const fail = runTrial();
+      if (fail == null) return { ok: true, warnings: [] }; // any trial that survives ⇒ fair
+      if (firstFailTurn == null) firstFailTurn = fail;
+    }
+    return { ok: false, warnings: [`턴 ${firstFailTurn}: 안전한 이동이 없음 — 불공정 가능`] };
   } catch (e) {
     return { ok: false, warnings: ['시뮬레이션 오류: ' + (e && e.message)] };
   }
-  return { ok: warnings.length === 0, warnings };
 };
 
 // merge any localStorage overrides on load so the game sees edited data

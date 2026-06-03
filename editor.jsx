@@ -135,7 +135,9 @@ const ResourceTab = ({ flash }) => {
         <div className="ed-row-head"><span>{sel} · {entry.kind}</span><button className="ed-btn" onClick={reset}>복원</button></div>
 
         <div className="res-kind">
-          <button className={entry.kind === 'pixel' ? 'on' : ''} disabled={entry.kind === 'vector'}
+          {/* pixel kind requires grid data; a vector (or vector→image) resource has none, so
+              forcing kind:'pixel' would render an empty grid and crash drawArt. Gate on entry.grid. */}
+          <button className={entry.kind === 'pixel' ? 'on' : ''} disabled={!entry.grid}
             onClick={() => savePatch({ kind: 'pixel' })}>픽셀</button>
           <button className={entry.kind === 'image' ? 'on' : ''}
             onClick={() => savePatch({ kind: 'image', src: entry.src || 'assets/.png', w: entry.w || 34, h: entry.h || 34 })}>이미지</button>

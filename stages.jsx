@@ -113,7 +113,8 @@ const phaseFor = (stage, w) => {
 
 // pickPattern — used by engine tick to choose the next wave
 const pickPattern = (stage, t, s) => {
-  if (stage.type === 'boss') {
+  // a boss with no phases (e.g. an in-progress editor def) falls back to the pool path
+  if (stage.type === 'boss' && stage.phases && stage.phases.length) {
     const ph = phaseFor(stage, s.bossWaves || 0);
     return bossAtk(stage.phases[ph], s);
   }
@@ -124,8 +125,11 @@ const pickPattern = (stage, t, s) => {
 const stageInterval = (stage) => stage.interval || 2;
 
 // current boss phase name (for HUD)
-const bossPhaseName = (stage, w) =>
-  stage.type === 'boss' ? (stage.phases[phaseFor(stage, w)].name || '공격') : '';
+const bossPhaseName = (stage, w) => {
+  if (stage.type !== 'boss' || !stage.phases || !stage.phases.length) return '';
+  const ph = stage.phases[phaseFor(stage, w)];
+  return (ph && ph.name) || '공격';
+};
 
 // ─── Stage definitions (24) ────────────────────────────────────
 // type: normal | survive | collect | boss
@@ -224,7 +228,10 @@ const STAGES = [
   },
   {
     id: 12, type: 'survive', name: '폭풍전야', sub: '20턴 생존',
-    interval: 2, pool: [P.twin, P.center, P.edges, P.rwall],
+    // pool MUST stay contiguous-safe: a one-sided 3-wide wall (rwall/lwall) combined with
+    // the lunge pinning the vertical escape can corner a bottom-row player (verified unfair
+    // ~4.5%/200 seeds). twin/center/edges always leave a reachable safe band. See fairness test.
+    interval: 2, pool: [P.twin, P.center, P.edges],
     surviveTurns: 20,
     enemies: [{ r: 1, c: 3, kind: 'lunge' }],
     tip: '돌격수가 충전 후 직선으로 돌진합니다(레인 경고). 돌진 레인을 피해 20턴 생존.',
@@ -378,6 +385,12 @@ const initStageDef = (def, idx = 0) => {
 };
 const initStage = (idx) => initStageDef(STAGES[idx], idx);
 
+// fresh state for a "Retry". A test-play run (g._test) is rebuilt from its in-memory def
+// (g.stage) — a custom stage's stageIdx points past STAGES, so initStage(idx) would read
+// undefined and crash; rebuilding via initStage would also drop the _test flag (saving stars).
+const initStageReplay = (g) =>
+  g._test ? { ...initStageDef(g.stage, g.stageIdx), _test: true } : initStage(g.stageIdx);
+
 // progress objective text for HUD
 const objText = (s) => {
   const o = s.obj;
@@ -435,7 +448,7 @@ Object.assign(window, {
   HXS: {
     STAGES,
     pickPattern, stageInterval, bossPhaseName, phaseFor,
-    initStage, initStageDef, objText, objFor,
+    initStage, initStageDef, initStageReplay, objText, objFor,
     loadStars, saveStars, isUnlocked, rateStage,
     TYPE_META,
   },

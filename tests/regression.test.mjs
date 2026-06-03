@@ -65,3 +65,27 @@ test('bossAtk aimed targets player column ±1', () => {
   // p.c is a cross-realm Array from the VM sandbox; spread into same-realm array to compare.
   assert.deepEqual([...p.c], [2, 3, 4]);
 });
+
+// #2/#3: "Retry" during test-play must rebuild from the in-memory def (g.stage), NOT from
+// STAGES[idx]. A new custom stage has an out-of-bounds stageIdx (STAGES[idx] === undefined →
+// crash), and rebuilding via initStage drops the _test flag (→ stars wrongly saved).
+test('initStageReplay rebuilds a test-play custom stage from its own def, keeping _test', () => {
+  const { HXS } = loadGame();
+  const def = { id: 1000, type: 'survive', name: 'C', interval: 2, surviveTurns: 10,
+    pool: [], walls: [], enemies: [], gems: [], cracks: [], pads: [], spikes: [], turrets: [] };
+  const g = { ...HXS.initStageDef(def, 999), _test: true }; // 999 is out of STAGES bounds
+  let r;
+  assert.doesNotThrow(() => { r = HXS.initStageReplay(g); });
+  assert.equal(r._test, true);     // test-play flag preserved
+  assert.equal(r.t, 0);            // fresh run
+  assert.equal(r.stage.id, 1000);  // same def, no STAGES lookup
+});
+
+test('initStageReplay replays a normal stage from STAGES without the test flag', () => {
+  const { HXS } = loadGame();
+  const g = HXS.initStage(2);
+  const r = HXS.initStageReplay(g);
+  assert.ok(!r._test);
+  assert.equal(r.stageIdx, 2);
+  assert.equal(r.t, 0);
+});

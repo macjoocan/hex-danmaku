@@ -512,7 +512,9 @@ function App() {
   const toEditor = useCallback(() => { setG(null); setScreen('editor'); }, []);
   const testPlay = useCallback((def) => { setG({ ...HXS.initStageDef(def, def.stageIdx ?? 0), _test: true }); setScreen('play'); setRunId(n => n + 1); }, []);
   const retry = useCallback(() => {
-    setG(cur => (cur ? (cur.mode === 'stage' ? HXS.initStage(cur.stageIdx) : HX.initState()) : cur));
+    // initStageReplay rebuilds a test-play run from its own def (preserving _test) and a real
+    // stage from STAGES — so retrying an unsaved custom stage neither crashes nor saves stars.
+    setG(cur => (cur ? (cur.mode === 'stage' ? HXS.initStageReplay(cur) : HX.initState()) : cur));
     setRunId(n => n + 1);
   }, []);
 
@@ -533,7 +535,7 @@ function App() {
       g={g} setG={setG}
       stars={stars} setStars={setStars}
       hi={hi} setHi={setHi}
-      onRetry={retry} onNext={startStage}
+      onRetry={retry} onNext={g && g._test ? toEditor : startStage}
       onList={g && g._test ? toEditor : toSelect}
       onMenu={g && g._test ? toEditor : toMenu}
     />

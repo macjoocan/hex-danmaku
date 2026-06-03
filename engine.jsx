@@ -200,6 +200,7 @@ const ENEMY_KINDS = {
       const wind = bal().enemy.lungeWindup, dash = bal().enemy.lungeDash;
       if (e.cd == null) e.cd = wind;
       if (e.cd > 0) { e.cd -= 1; e.face = pickFace(e, ctx); return; }
+      if (e.face == null) e.face = pickFace(e, ctx); // windup 0: no telegraph turn ran, aim now
       for (let i = 0; i < dash; i++) {
         const [dr, dc] = D(e.r)[e.face];
         const r = e.r + dr, c = e.c + dc;
@@ -398,9 +399,6 @@ const tick = (s, nr, nc) => {
       moved.push(e);
     }
   }
-  // merge boss-summoned adds AFTER movement (they don't act on spawn turn)
-  if (spawnedEnemies.length) enemies = [...enemies, ...spawnedEnemies];
-
   // ── lasers: telegraph (charge) then fire down the full column ──
   let laserHit = false;
   const liveLasers = [];
@@ -422,6 +420,10 @@ const tick = (s, nr, nc) => {
     || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
   const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit;
+
+  // merge boss-summoned adds AFTER collision — they don't act (or kill) on their spawn turn,
+  // so an add materializing on the player's cell is a telegraph, not an untelegraphed death.
+  if (spawnedEnemies.length) enemies = [...enemies, ...spawnedEnemies];
 
   // ── win checks (stage) ──
   let win = false;

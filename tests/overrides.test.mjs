@@ -9,6 +9,16 @@ test('buildBalance merges patch over DEFAULT_BAL', () => {
   assert.equal(b.skill.undoCost, HX.DEFAULT_BAL.skill.undoCost); // untouched
 });
 
+// #9: clearing a slider's number input yields Number('') === 0. chaseEvery:0 makes the engine
+// compute `t % 0` === NaN (chasers freeze forever); lungeDash:0 makes the dash a no-op. Clamp the
+// engine-timing fields to a safe minimum so a bad value can never corrupt the run.
+test('buildBalance clamps engine-breaking timing fields to >= 1', () => {
+  const { HXE } = loadEditor();
+  assert.ok(HXE.buildBalance({ enemy: { chaseEvery: 0 } }).enemy.chaseEvery >= 1);
+  assert.ok(HXE.buildBalance({ enemy: { chaseEvery: NaN } }).enemy.chaseEvery >= 1);
+  assert.ok(HXE.buildBalance({ enemy: { lungeDash: 0 } }).enemy.lungeDash >= 1);
+});
+
 test('applyStageOverrides merges by id and appends custom', () => {
   const { HXE } = loadEditor();
   const base = [{ id: 1, name: 'A', interval: 2 }, { id: 2, name: 'B', interval: 2 }];
@@ -46,6 +56,16 @@ test('parseOverrides rejects malformed JSON and bad schema', () => {
   assert.throws(() => HXE.parseOverrides(JSON.stringify({ stages: { custom: 'nope' } })));
 });
 
+// #5: arrays pass `typeof x === 'object'`, so a malformed array slips through validation and
+// silently corrupts state (e.g. balance:[] turns window.HXB into an array → bal().skill crashes).
+test('parseOverrides rejects array-valued sections', () => {
+  const { HXE } = loadEditor();
+  assert.throws(() => HXE.parseOverrides(JSON.stringify({ stages: [] })), /stages/);
+  assert.throws(() => HXE.parseOverrides(JSON.stringify({ stages: { overrides: [], custom: [] } })), /stages/);
+  assert.throws(() => HXE.parseOverrides(JSON.stringify({ balance: [] })), /balance/);
+  assert.throws(() => HXE.parseOverrides(JSON.stringify({ res: [] })), /res/);
+});
+
 test('importOverrides applies balance to window.HXB', () => {
   const { HXE, win } = loadEditor();
   HXE.importOverrides(JSON.stringify({ balance: { skill: { bombCost: 5 } } }));
@@ -65,4 +85,28 @@ test('validateStage returns a {ok, warnings} shape', () => {
     pool: [], walls: [{ r: 10, c: 2 }, { r: 10, c: 4 }, { r: 9, c: 2 }, { r: 9, c: 3 }] };
   const res = HXE.validateStage(def, { turns: 5 });
   assert.ok(typeof res.ok === 'boolean' && Array.isArray(res.warnings));
+});
+
+// #10: validateStage must dodge at least as well as the fairness test (2-ply lookahead +
+// multiple internal trials), or it false-warns on stages that are actually fair. A single
+// 1-ply greedy playthrough corners itself on RNG pools and flags shipped fair stages.
+test('validateStage does not false-warn on shipped reworked stages', () => {
+  const reworked = [5, 8, 10, 11, 12, 19];
+  for (let seed = 1; seed <= 5; seed++) {
+    const { HXS, HXE } = loadEditor({ seed });
+    for (const id of reworked) {
+      const def = HXS.STAGES.find(s => s.id === id);
+      const res = HXE.validateStage(def);
+      assert.ok(res.ok, `id ${id} seed ${seed} should be fair: ${res.warnings[0]}`);
+    }
+  }
+});
+
+test('validateStage flags a genuinely unfair stage (full-width volley)', () => {
+  const { HXE } = loadEditor({ seed: 1 });
+  const def = { id: 9999, type: 'survive', surviveTurns: 30, interval: 1, firstDelay: 0,
+    pool: [{ n: '전열', c: [0, 1, 2, 3, 4, 5, 6] }], start: { r: 8, c: 3 },
+    walls: [], enemies: [], gems: [], cracks: [], pads: [], spikes: [], turrets: [] };
+  const res = HXE.validateStage(def);
+  assert.equal(res.ok, false);
 });

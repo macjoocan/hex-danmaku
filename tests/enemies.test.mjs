@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadGame, baseState } from './harness.mjs';
+import { loadGame, loadEditor, baseState } from './harness.mjs';
 
 const survive = (HX, over) => baseState(HX, {
   mode: 'stage', obj: { type: 'survive', surviveTurns: 99 }, si: 99,
@@ -45,4 +45,19 @@ test('stepping onto an enemy cell = game over', () => {
   const s = survive(HX, { t: 0, pl: { r: 6, c: 3 }, enemies: [{ r: 5, c: 3, kind: 'bounce', dir: 1 }] });
   const n = HX.tick(s, 5, 3); // (5,3) is NE of (6,3) on even row 6
   assert.equal(n.ov, true);
+});
+
+// #6: lungeWindup is editor-tunable down to 0 (and a cleared input yields 0). With windup 0 the
+// enemy must dash immediately without crashing — previously e.face was undefined -> D(r)[undefined] threw.
+test('lunge with windup=0 dashes immediately without crashing', () => {
+  const { HX, win } = loadEditor();
+  win.HXB.enemy.lungeWindup = 0; // applyOverrides already set win.HXB on load
+  const s = baseState(HX, {
+    mode: 'stage', obj: { type: 'survive', surviveTurns: 99 }, si: 99,
+    stage: { type: 'survive', interval: 2 },
+    t: 1, pl: { r: 9, c: 3 }, enemies: [{ r: 4, c: 3, kind: 'lunge' }],
+  });
+  let n;
+  assert.doesNotThrow(() => { n = HX.tick(s, s.pl.r, s.pl.c); });
+  assert.ok(n.enemies[0].r > 4); // dashed downward toward the player
 });

@@ -67,9 +67,14 @@ function stageSurvives(idx, { seed = 5, turns = 30 } = {}) {
     s = n;
   }
 }
-// reworked general stages: ids 5,8,10,12 -> indexes 4,7,9,11 (pool is RNG, so try seeds)
-for (const idx of [4, 7, 9, 11]) for (const seed of [1, 5, 7])
-  test(`reworked stage index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 30 }));
+// reworked general stages: ids 5,8,10,12 -> indexes 4,7,9,11. The pool is RNG-driven,
+// so a few hand-picked seeds is NOT enough — a mobile-enemy stage can corner the player
+// on only ~1-5% of seeds. Sweep a wide range so a rare unfair pool combination surfaces.
+const FAIR_SEEDS = Array.from({ length: 40 }, (_, i) => i + 1); // 1..40
+for (const idx of [4, 7, 9, 11])
+  test(`reworked stage index ${idx} stays fair across ${FAIR_SEEDS.length} seeds`, () => {
+    for (const seed of FAIR_SEEDS) stageSurvives(idx, { seed, turns: 30 });
+  });
 // reworked bosses: ids 11,19 -> indexes 10,18 (full fight ~ bossTotal*interval turns)
 for (const idx of [10, 18]) for (const seed of [3, 9, 11])
   test(`reworked boss index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 50 }));
