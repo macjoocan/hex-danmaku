@@ -377,7 +377,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
             {(g.turrets || []).map((t, i) => { const { x, y } = hc(t.r, t.c); return <TurretSprite key={`tt-${i}`} x={x} y={y} warn={turretWarnSet.has(`${t.r + 1},${t.c}`)} />; })}
 
-            {(g.beams || []).map((b, i) => { const { x, y } = hc(b.r, b.c); return <BeamSprite key={`bm-${i}`} x={x} y={y} warn={b.cd === 1} />; })}
+            {(g.beams || []).map((b, i) => { const { x, y } = hc(b.r, b.c); return <BeamSprite key={`beam-${i}`} x={x} y={y} warn={b.cd === 1} />; })}
 
             {g.goal && (() => { const { x, y } = hc(g.goal.r, g.goal.c); return <PortalSprite x={x} y={y} />; })()}
 
@@ -502,7 +502,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {isStage && (g.cracks || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#2a2440' }}></span>부서지는 발판</div>}
           {isStage && (g.pads || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>컨베이어</div>}
           {isStage && (g.turrets || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#94a3b8' }}></span>포대 ▲</div>}
-          {isStage && (g.beams || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>레이저 방출기</div>}
+          {isStage && (g.beams || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#0e7490' }}></span>레이저 방출기</div>}
           {isStage && (g.stage.type === 'boss' || (g.lasers || []).length > 0) && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>광선 ✦</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>폭탄 ✸</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#c084fc' }}></span>이동 ✦</div>}
