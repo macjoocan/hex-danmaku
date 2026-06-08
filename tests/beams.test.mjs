@@ -79,3 +79,13 @@ test('two beam emitters with different cds tick independently', () => {
   assert.equal(n.beams[1].cd, 4);
   assert.equal(n.ov, false);
 });
+
+test('initStageDef maps def.beams and initializes cd from period/phase', () => {
+  const { HXS } = loadGame();
+  const def = { type: 'survive', interval: 2, surviveTurns: 10,
+    beams: [{ r: 0, c: 3, period: 4 }, { r: 0, c: 5, period: 6, phase: 2 }] };
+  const s = HXS.initStageDef(def, 0);
+  assert.equal(s.beams.length, 2);
+  assert.equal(s.beams[0].cd, 4); // period 4 - phase 0
+  assert.equal(s.beams[1].cd, 4); // period 6 - phase 2
+});
