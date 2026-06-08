@@ -425,7 +425,7 @@ const tick = (s, nr, nc) => {
     if (cd <= 0) {                                     // fire this turn
       if (finalC === b.c) beamHit = true;
       evts.push({ ty: 'beam', c: b.c });
-      cd = period;                                     // rest, then telegraph again at cd===1
+      cd = period;                                     // reset; the telegraph turn is when cd reaches 1 again
     }
     return { ...b, cd };
   });

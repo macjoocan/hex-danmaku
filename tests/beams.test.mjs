@@ -53,3 +53,29 @@ test('a fired beam pushes a beam event for its column', () => {
   const n = HX.tick(s, s.pl.r, s.pl.c);
   assert.ok(n.evts.some(e => e.ty === 'beam' && e.c === 3));
 });
+
+test('beam with no cd field initialises from period and fires after period turns', () => {
+  const { HX } = loadGame();
+  // no cd field — the path real stage data uses: { r, c, period }
+  // cd == null initialises to period then decrements: period→period-1 each tick, fires at 0, resets
+  // With period:3 the sequence is [2, 1, 3]: tick1 3→2, tick2 2→1 (telegraph), tick3 1→0 fire→reset 3
+  let s = stageState(HX, { t: 0, pl: { r: 10, c: 0 }, beams: [{ r: 0, c: 3, period: 3 }] });
+  const cds = [];
+  for (let i = 0; i < 3; i++) { s = HX.tick(s, s.pl.r, s.pl.c); cds.push(s.beams[0].cd); }
+  assert.deepEqual(cds, [2, 1, 3]);
+});
+
+test('two beam emitters with different cds tick independently', () => {
+  const { HX } = loadGame();
+  // beam[0]: period:4, cd:3  -> after one tick cd becomes 2
+  // beam[1]: period:4, cd:1  -> after one tick cd<=0 fires, resets to 4
+  // player at c:3, not in c:1 or c:5, so ov stays false
+  const s = stageState(HX, {
+    t: 0, pl: { r: 10, c: 3 },
+    beams: [{ r: 0, c: 1, period: 4, cd: 3 }, { r: 0, c: 5, period: 4, cd: 1 }],
+  });
+  const n = HX.tick(s, s.pl.r, s.pl.c);
+  assert.equal(n.beams[0].cd, 2);
+  assert.equal(n.beams[1].cd, 4);
+  assert.equal(n.ov, false);
+});
