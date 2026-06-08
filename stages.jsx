@@ -371,7 +371,7 @@ const initStageDef = (def, idx = 0) => {
     spikes: (def.spikes || []).map(sp => ({ ...sp })),
     cracks: (def.cracks || []).map(cr => ({ ...cr, broken: false })),
     pads: (def.pads || []).map(p => ({ ...p })),
-    beams: (def.beams || []).map(b => ({ ...b, cd: (b.period || 4) - (b.phase || 0) })),
+    beams: (def.beams || []).map(b => ({ ...b, cd: Math.max(1, (b.period || 4) - (b.phase || 0)) })),
     lasers: [],
     enemies: (def.enemies || []).map(e => ({ ...e })),
     goal: def.goal ? { ...def.goal } : null,

@@ -26,7 +26,6 @@ const Cell = ({ r, c, state, onClick }) => {
   else if (state.spike) { fill = '#2e1217'; stroke = '#b91c1c'; strokeW = 1.8; }
   else if (state.crack) { fill = '#05060f'; stroke = '#2a2e58'; strokeW = 1.8; }
   else if (state.pad) { fill = '#13402c'; stroke = '#34d399'; strokeW = 1.6; }
-  else if (state.beamFire) { fill = '#3a1418'; stroke = '#f87171'; strokeW = 2.5; }
   else if (state.beam) { fill = '#0b2e3a'; stroke = '#67e8f9'; strokeW = 1.8; }
   else if (state.danger && state.preview) { fill = '#3a2a18'; stroke = '#fbbf24'; strokeW = 2; }
   else if (state.danger) { fill = '#3a1d18'; stroke = '#fb7185'; strokeW = 1.8; }
@@ -49,7 +48,6 @@ const Cell = ({ r, c, state, onClick }) => {
         <circle cx={x} cy={y} r="1.7" fill="#38bdf8" opacity="0.8" />
       )}
       {state.beamWarn && <path d={hp(x, y, SZ - 4)} fill="none" stroke="#67e8f9" strokeWidth="1.6" strokeDasharray="3 3" />}
-      {state.beamFire && <path className="laser-beam" d={hp(x, y, SZ - 2)} fill="#67e8f9" opacity="0.85" />}
     </g>
   );
 };
@@ -131,6 +129,8 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   // visual effects from events
   useEffect(() => {
     (g.evts || []).forEach(ev => {
+      if (ev.ty === 'laser') { flashBeam(ev.c); return; }
+      if (ev.ty === 'beam')  { flashBeam(ev.c); return; }
       const { x, y } = HX.hc(ev.r, ev.c);
       if (ev.ty === 'sc') addFloat(`+${ev.val}`, x, y - 6, '#fbbf24');
       else if (ev.ty === 'gem') addFloat(`+${ev.val}`, x, y - 6, '#fde68a');
@@ -138,7 +138,6 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       else if (ev.ty === 'tp') addFloat('WARP!', x, y - 6, '#c084fc');
       else if (ev.ty === 'ht') addFloat('+예지', x, y - 6, '#f97316');
       else if (ev.ty === 'idel') addFloat('✕', x, y - 4, '#7a82b0');
-      else if (ev.ty === 'laser') flashBeam(ev.c);
     });
   }, [g.evts]);
 
@@ -208,8 +207,6 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   const beamSet = useMemo(() => new Set((g.beams || []).map(b => `${b.r},${b.c}`)), [g.beams]);
   // columns telegraphing this turn (cd===1 -> fires next turn): dotted full column
   const beamWarnCols = useMemo(() => new Set((g.beams || []).filter(b => b.cd === 1).map(b => b.c)), [g.beams]);
-  // columns that fired this turn (from evts): full-column flash
-  const beamFireCols = useMemo(() => new Set((g.evts || []).filter(e => e.ty === 'beam').map(e => e.c)), [g.evts]);
   // turret muzzle: cell that fires NEXT turn
   const turretWarnSet = useMemo(() => {
     const set = new Set();
@@ -278,7 +275,6 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       pad: padSet.has(k),
       beam: beamSet.has(k),
       beamWarn: beamWarnCols.has(c),
-      beamFire: beamFireCols.has(c),
       turretWarn: turretWarnSet.has(k),
       laser1: lc === 1,
       laser2: lc === 2,
