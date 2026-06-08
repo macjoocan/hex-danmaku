@@ -157,9 +157,18 @@ const CrackSprite = ({ x, y, broken }) => {
   );
 };
 
+// Beam emitter — pixel device + shadow; pulses while telegraphing
+const BeamSprite = ({ x, y, warn }) => (
+  <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }}>
+    <ellipse cx="0" cy="9" rx="7" ry="2" fill="#06121f" opacity="0.4" />
+    <g className={warn ? 'mine-armed' : undefined}>{drawArt('beam')}</g>
+  </g>
+);
+
 Object.assign(window, {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
+  BeamSprite,
 });

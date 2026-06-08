@@ -174,6 +174,13 @@ const PAD = [
   'AAAAAAH.', '...AA...', '...A....', '........',
 ];
 
+// Laser beam emitter (placed cannon that zaps its whole column). 8x8, rows are 8 chars.
+const BEAM_MAP = { X: '#0e7490', H: '#67e8f9', e: '#a5f3fc' };
+const BEAM = [
+  '.XXXXXX.', 'XHHHHHHX', 'XHeeeeHX', 'XHe..eHX',
+  'XHe..eHX', 'XHeeeeHX', 'XHHHHHHX', '.XXXXXX.',
+];
+
 // Fuse mine (telegraph marker, pulses while armed)
 const MINE_MAP = { o: '#3a0a14', X: '#fbbf24', H: '#fde68a', e: '#7c2d12' };
 const MINE = [
@@ -202,6 +209,7 @@ const RES = {
   crack:   { kind: 'vector' },
   spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 2.4 },
   turret:  { kind: 'pixel', grid: TURRET,  map: TURRET_MAP,  px: 2.4, warnMap: { B: '#fca5a5' } },
+  beam:    { kind: 'pixel', grid: BEAM,     map: BEAM_MAP,    px: 2.3 },
   // wall is vector by default (see note up top); set kind:'image' here to swap it.
   wall:    { kind: 'vector' },
 };

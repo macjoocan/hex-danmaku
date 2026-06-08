@@ -7,7 +7,7 @@ const {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
-  BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
+  BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
   MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
 } = window;
 
@@ -26,6 +26,8 @@ const Cell = ({ r, c, state, onClick }) => {
   else if (state.spike) { fill = '#2e1217'; stroke = '#b91c1c'; strokeW = 1.8; }
   else if (state.crack) { fill = '#05060f'; stroke = '#2a2e58'; strokeW = 1.8; }
   else if (state.pad) { fill = '#13402c'; stroke = '#34d399'; strokeW = 1.6; }
+  else if (state.beamFire) { fill = '#3a1418'; stroke = '#f87171'; strokeW = 2.5; }
+  else if (state.beam) { fill = '#0b2e3a'; stroke = '#67e8f9'; strokeW = 1.8; }
   else if (state.danger && state.preview) { fill = '#3a2a18'; stroke = '#fbbf24'; strokeW = 2; }
   else if (state.danger) { fill = '#3a1d18'; stroke = '#fb7185'; strokeW = 1.8; }
   else if (state.preview) { fill = '#3a2a18'; stroke = '#fbbf24'; strokeW = 1.5; }
@@ -46,6 +48,8 @@ const Cell = ({ r, c, state, onClick }) => {
       {state.move && !state.bullet && !state.item && !state.wall && !state.turret && !state.spike && (
         <circle cx={x} cy={y} r="1.7" fill="#38bdf8" opacity="0.8" />
       )}
+      {state.beamWarn && <path d={hp(x, y, SZ - 4)} fill="none" stroke="#67e8f9" strokeWidth="1.6" strokeDasharray="3 3" />}
+      {state.beamFire && <path className="laser-beam" d={hp(x, y, SZ - 2)} fill="#67e8f9" opacity="0.85" />}
     </g>
   );
 };
@@ -201,6 +205,11 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   const blockSet = useMemo(() => { const s = new Set(wallSet); turretSet.forEach(k => s.add(k)); crackSet.forEach(k => s.add(k)); return s; }, [wallSet, turretSet, crackSet]);
   // laser telegraph: column -> charge (1 = imminent, 2 = warning)
   const laserCols = useMemo(() => { const m = new Map(); (g.lasers || []).forEach(l => m.set(l.c, Math.min(m.get(l.c) ?? 9, l.charge))); return m; }, [g.lasers]);
+  const beamSet = useMemo(() => new Set((g.beams || []).map(b => `${b.r},${b.c}`)), [g.beams]);
+  // columns telegraphing this turn (cd===1 -> fires next turn): dotted full column
+  const beamWarnCols = useMemo(() => new Set((g.beams || []).filter(b => b.cd === 1).map(b => b.c)), [g.beams]);
+  // columns that fired this turn (from evts): full-column flash
+  const beamFireCols = useMemo(() => new Set((g.evts || []).filter(e => e.ty === 'beam').map(e => e.c)), [g.evts]);
   // turret muzzle: cell that fires NEXT turn
   const turretWarnSet = useMemo(() => {
     const set = new Set();
@@ -267,6 +276,9 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       spike: spikeSet.has(k),
       crack: crackSet.has(k),
       pad: padSet.has(k),
+      beam: beamSet.has(k),
+      beamWarn: beamWarnCols.has(c),
+      beamFire: beamFireCols.has(c),
       turretWarn: turretWarnSet.has(k),
       laser1: lc === 1,
       laser2: lc === 2,
@@ -364,6 +376,8 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
             {(g.spikes || []).map((sp, i) => { const { x, y } = hc(sp.r, sp.c); return <SpikeSprite key={`sp-${i}`} x={x} y={y} />; })}
 
             {(g.turrets || []).map((t, i) => { const { x, y } = hc(t.r, t.c); return <TurretSprite key={`tt-${i}`} x={x} y={y} warn={turretWarnSet.has(`${t.r + 1},${t.c}`)} />; })}
+
+            {(g.beams || []).map((b, i) => { const { x, y } = hc(b.r, b.c); return <BeamSprite key={`bm-${i}`} x={x} y={y} warn={b.cd === 1} />; })}
 
             {g.goal && (() => { const { x, y } = hc(g.goal.r, g.goal.c); return <PortalSprite x={x} y={y} />; })()}
 
@@ -488,6 +502,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {isStage && (g.cracks || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#2a2440' }}></span>부서지는 발판</div>}
           {isStage && (g.pads || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>컨베이어</div>}
           {isStage && (g.turrets || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#94a3b8' }}></span>포대 ▲</div>}
+          {isStage && (g.beams || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>레이저 방출기</div>}
           {isStage && (g.stage.type === 'boss' || (g.lasers || []).length > 0) && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>광선 ✦</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>폭탄 ✸</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#c084fc' }}></span>이동 ✦</div>}
