@@ -837,12 +837,13 @@ engine → stages → resources → sprites → editor-core → screens → edit
 
 `ENEMY_KINDS.lunge.telegraph(e)` → `cd===0`일 때 돌진 예정 레인 셀(렌더 경고용). 보스 `summon`이 적을 생성해 합류시킴(`spawnedEnemies`).
 
-## 3. 필드 기믹 — `crack` / `pad`
+## 3. 필드 기믹 — `crack` / `pad` / `beam`
 
 `GIMMICKS` 메타 테이블 + tick 내 인라인 처리.
 
 - **`cracks: [{r,c,broken}]`** — 부서지는 발판. 밟고 **떠나면** `broken=true` → 이후 `block`에 포함(이동·탄막 차단). 치명 아님.
 - **`pads: [{r,c,dir}]`** — 컨베이어. 진입 시 충돌/아이템 판정 **전에** `dir` 방향 1칸 밀림(1회, 벽/범위면 밀림 없음).
+- **`beams: [{r,c,period,phase?}]`** — 레이저 방출기(배치형). 방출기별 `cd` 쿨다운: `cd===1` 점선 예고 → `cd<=0` 해당 **컬럼 전체** 일격(`finalC===c`이면 즉사) → `cd=period` 리셋. 벽 관통, 비-솔리드, 플레이어만 치명, 정지(freeze) 중 멈춤. 기존 보스 `lasers`(1회성)와 별개. 에디터 팔레트 "레이저".
 
 ## 4. 새 보스 공격 — `bossAtk` (stages)
 
