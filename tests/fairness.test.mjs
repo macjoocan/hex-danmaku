@@ -56,6 +56,21 @@ test('boss attack summon always leaves a safe move', () => bossSurvives('summon'
 test('boss attack sweepGap always leaves a safe move', () => bossSurvives('sweepGap', { turns: 24 }));
 test('boss attack full always leaves a safe move', () => bossSurvives('full', { turns: 24 }));
 
+// a placed beam emitter must never remove every safe move — the player can always leave its column
+test('a single beam emitter stays dodgeable', () => {
+  const { HX, HXS } = loadGame({ seed: 7 });
+  const def = { type: 'survive', interval: 2, surviveTurns: 30,
+    pool: [{ n: '중앙', c: [2, 3, 4] }],
+    beams: [{ r: 0, c: 3, period: 4 }], start: { r: 10, c: 0 } };
+  let s = HXS.initStageDef(def, 0);
+  for (let i = 0; i < 30 && !s.ov && !s.win; i++) {
+    assert.ok(hasSafeMove(HX, s), `beam turn ${s.t}: no safe move (unfair)`);
+    const n = bestNext(HX, s);
+    if (!n) break;
+    s = n;
+  }
+});
+
 // drive a real stage (greedy smart-dodge) and assert a safe move always exists.
 function stageSurvives(idx, { seed = 5, turns = 30 } = {}) {
   const { HX, HXS } = loadGame({ seed });
