@@ -185,7 +185,7 @@ const ResourceTab = ({ flash }) => {
 };
 const PALETTE = [
   ['erase', '지우개'], ['wall', '벽'], ['crack', '발판'], ['pad', '컨베이어'],
-  ['spike', '가시'], ['turret', '포대'], ['gem', '별'], ['goal', '게이트'],
+  ['spike', '가시'], ['turret', '포대'], ['beam', '레이저'], ['gem', '별'], ['goal', '게이트'],
   ['start', '시작'], ['enemy:chase', '추적자'], ['enemy:bounce', '반사체'], ['enemy:lunge', '돌격수'],
 ];
 const STAGE_TYPES = ['normal', 'survive', 'collect', 'boss'];
@@ -195,7 +195,7 @@ const cloneDef = (def) => JSON.parse(JSON.stringify(def));
 const blankDef = () => ({
   id: 1000, type: 'survive', name: '커스텀', sub: '', tip: '',
   interval: 2, surviveTurns: 12, pool: [],
-  walls: [], cracks: [], pads: [], spikes: [], turrets: [], enemies: [], gems: [],
+  walls: [], cracks: [], pads: [], spikes: [], turrets: [], beams: [], enemies: [], gems: [],
   goal: null, start: null,
 });
 // pool membership compared by value (JSON clone breaks PAT reference identity)
@@ -207,6 +207,7 @@ const EditorBoard = ({ def, onCell }) => {
   const keyset = (arr) => new Set((arr || []).map(o => `${o.r},${o.c}`));
   const W = keyset(def.walls), CR = keyset(def.cracks), PD = keyset(def.pads),
         SP = keyset(def.spikes), TT = keyset(def.turrets), GM = keyset(def.gems),
+        BM = keyset(def.beams),
         EN = new Map((def.enemies || []).map(e => [`${e.r},${e.c}`, e.kind]));
   const cells = [];
   for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
@@ -214,7 +215,8 @@ const EditorBoard = ({ def, onCell }) => {
     let fill = '#1c1f3e';
     if (W.has(k)) fill = '#3a3f6e'; else if (CR.has(k)) fill = '#2a2440';
     else if (PD.has(k)) fill = '#13402c'; else if (SP.has(k)) fill = '#2e1217';
-    else if (TT.has(k)) fill = '#23264a'; else if (GM.has(k)) fill = '#3a2a18';
+    else if (TT.has(k)) fill = '#23264a'; else if (BM.has(k)) fill = '#0b2e3a';
+    else if (GM.has(k)) fill = '#3a2a18';
     else if (def.goal && def.goal.r === r && def.goal.c === c) fill = '#1e1442';
     else if (def.start && def.start.r === r && def.start.c === c) fill = '#0c2942';
     else if (EN.has(k)) fill = EN.get(k) === 'bounce' ? '#0c2a3a' : EN.get(k) === 'lunge' ? '#3a1a0a' : '#3b0a1a';
@@ -301,6 +303,7 @@ const StageTab = ({ flash, onTestPlay }) => {
     const d = cloneDef(def);
     const removeAt = (arr) => (arr || []).filter(o => !(o.r === r && o.c === c));
     d.walls = removeAt(d.walls); d.cracks = removeAt(d.cracks); d.pads = removeAt(d.pads);
+    d.beams = removeAt(d.beams);
     d.spikes = removeAt(d.spikes); d.turrets = removeAt(d.turrets); d.enemies = removeAt(d.enemies);
     d.gems = removeAt(d.gems);
     if (d.goal && d.goal.r === r && d.goal.c === c) d.goal = null;
@@ -312,6 +315,7 @@ const StageTab = ({ flash, onTestPlay }) => {
     else if (tool === 'pad') (d.pads = d.pads || []).push({ r, c, dir: 1 });
     else if (tool === 'spike') (d.spikes = d.spikes || []).push({ r, c });
     else if (tool === 'turret') (d.turrets = d.turrets || []).push({ r, c, period: 3, phase: 0 });
+    else if (tool === 'beam') (d.beams = d.beams || []).push({ r, c, period: 4 });
     else if (tool === 'gem') (d.gems = d.gems || []).push({ r, c });
     else if (tool === 'goal') d.goal = { r, c };
     else if (tool === 'start') d.start = { r, c };
