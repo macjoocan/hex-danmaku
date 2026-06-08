@@ -233,6 +233,7 @@ const GIMMICKS = {
   spike:  { blocksMove: false, blocksBullet: false, lethal: true },
   crack:  { blocksMove: 'whenBroken', blocksBullet: 'whenBroken', lethal: false },
   pad:    { blocksMove: false, blocksBullet: false, lethal: false, push: true },
+  beam:   { blocksMove: false, blocksBullet: false, lethal: 'whenFiring' },
 };
 
 // ─── Main tick (handles both modes) ────────────────────────────
@@ -413,13 +414,29 @@ const tick = (s, nr, nc) => {
   }
   lasers = [...liveLasers, ...spawnedLasers];
 
+  // ── beam emitters (placed laser): cooldown -> 1-turn dotted telegraph -> full-column zap ──
+  // cd counts down (paused while frozen); cd===1 is the telegraph turn (renderer shows the dotted
+  // column), cd<=0 fires the whole column c then resets to period. Pierces walls; player-only lethal.
+  let beamHit = false;
+  const beams = (s.beams || []).map(b => {
+    if (s.fz > 0) return { ...b };                    // freeze pauses the cooldown
+    const period = b.period || 4;
+    let cd = (b.cd == null ? period : b.cd) - 1;
+    if (cd <= 0) {                                     // fire this turn
+      if (finalC === b.c) beamHit = true;
+      evts.push({ ty: 'beam', c: b.c });
+      cd = period;                                     // rest, then telegraph again at cd===1
+    }
+    return { ...b, cd };
+  });
+
   // ── collision ──
   const hitBullet = mv.some(b =>
     b.r === finalR && b.c === finalC && (b.fuse == null || b.fuse === 0));
   const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC)
     || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
-  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit;
+  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit;
 
   // merge boss-summoned adds AFTER collision — they don't act (or kill) on their spawn turn,
   // so an add materializing on the player's cell is a telegraph, not an untelegraphed death.
@@ -463,6 +480,7 @@ const tick = (s, nr, nc) => {
     combo,
     bossWaves,
     lasers,
+    beams,
     evts,
   };
 };
@@ -504,6 +522,7 @@ const initState = () => ({
   turrets: [],
   spikes: [],
   lasers: [],
+  beams: [],
   enemies: [],
   goal: null,
   gems: [],
