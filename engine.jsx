@@ -46,6 +46,7 @@ const DEFAULT_BAL = {
   item:  { spawnChance: 0.24, max: 3, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // ht = remainder
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
+  coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -556,6 +557,6 @@ Object.assign(window, {
     safest, tryItem, stepToward, tick,
     ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
-    initState, DEFAULT_BAL,
+    initState, DEFAULT_BAL, bal,
   },
 });

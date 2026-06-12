@@ -429,6 +429,24 @@ const saveStars = (id, stars) => {
   }
   return loadStars();
 };
+// ─── Coin wallet (run-persistent currency; stage-mode skill payment) ───
+const loadCoins = () => {
+  try {
+    const n = Number(localStorage.getItem('hex_coins'));
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  } catch { return 0; }
+};
+const saveCoins = (n) => {
+  const v = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  try { localStorage.setItem('hex_coins', String(v)); } catch {}
+  return v;
+};
+// 클리어 보상: 별 × (첫 클리어 clearPerStar | 재클리어 repeatPerStar)
+const coinReward = (stars, isFirst) => {
+  const c = window.HX.bal().coin;
+  return Math.max(0, stars) * (isFirst ? c.clearPerStar : c.repeatPerStar);
+};
+
 const isUnlocked = (idx, stars) =>
   idx === 0 || (STAGES[idx] && STAGES[idx].id >= 1000) || !!stars[STAGES[idx - 1].id];
 
@@ -451,6 +469,7 @@ Object.assign(window, {
     pickPattern, stageInterval, bossPhaseName, phaseFor,
     initStage, initStageDef, initStageReplay, objText, objFor,
     loadStars, saveStars, isUnlocked, rateStage,
+    loadCoins, saveCoins, coinReward,
     TYPE_META,
   },
 });
