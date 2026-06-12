@@ -72,7 +72,7 @@ const WallSprite = ({ x, y }) => {
   }
   return (
     <g style={{ pointerEvents: 'none' }}>
-      <path d={hp(x, y, SZ - 2)} fill="#3a3f6e" stroke="#565c98" strokeWidth="2" strokeLinejoin="miter" />
+      <path d={hp(x, y, SZ - 2)} fill="#434a85" stroke="#6b74b8" strokeWidth="2" strokeLinejoin="miter" />
       <path d={hp(x, y, SZ - 6)} fill="url(#wall-hatch)" opacity="0.6" />
     </g>
   );
@@ -151,8 +151,8 @@ const CrackSprite = ({ x, y, broken }) => {
   }
   return (
     <g style={{ pointerEvents: 'none' }}>
-      <path d={hp(x, y, SZ - 3)} fill="#2a2440" stroke="#6b5e3a" strokeWidth="1.5" strokeDasharray="3 2" strokeLinejoin="miter" />
-      <path d={`M${x - 8},${y - 6} L${x + 2},${y + 1} L${x - 3},${y + 8}`} fill="none" stroke="#6b5e3a" strokeWidth="1" />
+      <path d={hp(x, y, SZ - 3)} fill="#332b4d" stroke="#8a7a4d" strokeWidth="1.5" strokeDasharray="3 2" strokeLinejoin="miter" />
+      <path d={`M${x - 8},${y - 6} L${x + 2},${y + 1} L${x - 3},${y + 8}`} fill="none" stroke="#8a7a4d" strokeWidth="1" />
     </g>
   );
 };

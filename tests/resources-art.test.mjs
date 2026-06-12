@@ -11,6 +11,8 @@ const EXPECTED_SIZE = {
   drone: [16, 16], droneFz: [16, 16], chaser: [16, 16],
   bouncer: [16, 16], lunger: [16, 16], turret: [16, 16],
   star: [16, 16], bomb: [16, 16], tp: [16, 16], hint: [16, 16], gem: [16, 16],
+  portal: [16, 16], spike: [16, 16], pad: [16, 16],
+  mine: [16, 16], beam: [16, 16], explode: [16, 16],
 };
 
 test('every pixel grid is rectangular', () => {

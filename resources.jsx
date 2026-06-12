@@ -225,13 +225,50 @@ const HINT = [
   '................',
 ];
 
-// Explosion burst
-const EXPLODE = ['X.X..X.X', '.XX..XX.', 'XXXXXXXX', '..XHHX..', '..XHHX..', 'XXXXXXXX', '.XX..XX.', 'X.X..X.X'];
-const EXPLODE_MAP = { X: '#ff7a3d', H: '#fff7ed' };
+// Explosion burst — radial spikes around a white-hot core (no outline: it's light)
+const EXPLODE_MAP = { X: '#ff7a3d', H: '#fff7ed', d: '#c2410c' };
+const EXPLODE = [
+  '.X.....XX.....X.',
+  '..X....XX....X..',
+  '...X..dXXd..X...',
+  '....XdXXXXdX....',
+  '..ddXXXHHXXXdd..',
+  '...XXHHHHHHXX...',
+  'X.dXHHHHHHHHXd.X',
+  'XXXXHHHHHHHHXXXX',
+  'XXXXHHHHHHHHXXXX',
+  'X.dXHHHHHHHHXd.X',
+  '...XXHHHHHHXX...',
+  '..ddXXXHHXXXdd..',
+  '....XdXXXXdX....',
+  '...X..dXXd..X...',
+  '..X....XX....X..',
+  '.X.....XX.....X.',
+];
 
-// Portal / warp gate (stage goal)
-const PORTAL = ['.XXXXXX.', 'XHHHHHHX', 'XHWWWWHX', 'XHWIIWHX', 'XHWIIWHX', 'XHWWWWHX', 'XHHHHHHX', '.XXXXXX.'];
-const PORTAL_MAP = { X: '#6d28d9', H: '#a78bfa', W: '#e9d5ff', I: '#22d3ee' };
+// Portal / warp gate (stage goal) — double ring with a cyan swirl core
+const PORTAL_MAP = {
+  o: '#3b0764', X: '#6d28d9', H: '#a78bfa',
+  W: '#ede9fe', I: '#22d3ee', d: '#5b21b6',
+};
+const PORTAL = [
+  '....oooooooo....',
+  '..ooXXXXXXXXoo..',
+  '.oXXHHHHHHHHXXo.',
+  '.oXHHWWWWWWHHXo.',
+  '.oXHWWddddWWHXo.',
+  'oXHWdIIIIIIdWHXo',
+  'oXHWdIWWWIIdWHXo',
+  'oXHWdIWIIIIdWHXo',
+  'oXHWdIIIIIIdWHXo',
+  'oXHWdIIIIIIdWHXo',
+  '.oXHWWddddWWHXo.',
+  '.oXHHWWWWWWHHXo.',
+  '.oXXHHHHHHHHXXo.',
+  '..ooXXXXXXXXoo..',
+  '....oooooooo....',
+  '................',
+];
 
 // Required gem (collect stages) — faceted cut stone, distinct octagon silhouette vs the star
 const GEM_MAP = { o: '#854d0e', X: '#fbbf24', H: '#fffbeb', d: '#ca8a04' };
@@ -280,9 +317,26 @@ const CHASER = [
   '................',
 ];
 
-// Spike / hazard (lethal floor) — T = bright tip, X = base
-const SPIKE = ['........', '.T..T..T', '.TT.TT.T', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...', '........'];
-const SPIKE_MAP = { T: '#fca5a5', X: '#b91c1c' };
+// Spike / hazard (lethal floor) — rocky mound with three spikes, bright tips
+const SPIKE_MAP = { o: '#450a0a', X: '#b91c1c', T: '#fca5a5', d: '#7f1d1d' };
+const SPIKE = [
+  '................',
+  '................',
+  '................',
+  '..TT...TT...TT..',
+  '..XX...XX...XX..',
+  '..XX...XX...XX..',
+  '.dXXd.dXXd.dXXd.',
+  '.dXXd.dXXd.dXXd.',
+  'oXXXXXXXXXXXXXXo',
+  '.oddddddddddddo.',
+  '...oooooooooo...',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
 
 // Turret / column cannon — steel housing, barrel pointing down. B = muzzle (turns red on warn)
 const TURRET_MAP = {
@@ -363,24 +417,71 @@ const LUNGER = [
 ];
 
 // Conveyor pad arrow (drawn pointing east at dir 1; rotated per dir in the sprite)
-const PAD_MAP = { o: '#1e3a2a', A: '#34d399', H: '#bbf7d0' };
+const PAD_MAP = { o: '#052e16', A: '#34d399', H: '#bbf7d0', d: '#059669' };
 const PAD = [
-  '........', '...A....', '...AA...', 'AAAAAAH.',
-  'AAAAAAH.', '...AA...', '...A....', '........',
+  '................',
+  '................',
+  '................',
+  '................',
+  '.........oAo....',
+  '.........oAAo...',
+  '.oooooooooAAAo..',
+  '.oAAAAAAAAAAAAo.',
+  '.oAHHHHHHHHAAAo.',
+  '.oAddddddddAAAo.',
+  '.oooooooooAAAo..',
+  '.........oAAo...',
+  '.........oAo....',
+  '................',
+  '................',
+  '................',
 ];
 
-// Laser beam emitter (placed cannon that zaps its whole column). 8x8, rows are 8 chars.
-const BEAM_MAP = { X: '#0e7490', H: '#67e8f9', e: '#a5f3fc' };
+// Laser beam emitter (placed cannon that zaps its whole column) —
+// teal lens housing with a downward-narrowing muzzle (hints at the column zap).
+const BEAM_MAP = {
+  o: '#042f3c', X: '#0e7490', H: '#67e8f9', e: '#a5f3fc', d: '#155e75',
+};
 const BEAM = [
-  '.XXXXXX.', 'XHHHHHHX', 'XHeeeeHX', 'XHe..eHX',
-  'XHe..eHX', 'XHeeeeHX', 'XHHHHHHX', '.XXXXXX.',
+  '..oooooooooooo..',
+  '.oXXXXXXXXXXXXo.',
+  '.oXHHHHHHHHHHXo.',
+  '.oXHddddddddHXo.',
+  '.oXHdeeeeeedHXo.',
+  '.oXHdeHHHHedHXo.',
+  '.oXHdeHeeHedHXo.',
+  '.oXHdeHeeHedHXo.',
+  '.oXHdeHHHHedHXo.',
+  '.oXHdeeeeeedHXo.',
+  '.oXHddddddddHXo.',
+  '.oXXXXXXXXXXXXo.',
+  '..ooXXdHHdXXoo..',
+  '....oXdHHdXo....',
+  '.....odHHdo.....',
+  '......oHHo......',
 ];
 
-// Fuse mine (telegraph marker, pulses while armed)
-const MINE_MAP = { o: '#3a0a14', X: '#fbbf24', H: '#fde68a', e: '#7c2d12' };
+// Fuse mine (telegraph marker, pulses while armed) — spiked yellow shell, dark core
+const MINE_MAP = {
+  o: '#451a03', X: '#fbbf24', H: '#fde68a', e: '#7c2d12', d: '#d97706',
+};
 const MINE = [
-  '..o..o..', '.oXXXXo.', 'oXHHHHXo', 'oXHeeHXo',
-  'oXHeeHXo', 'oXHHHHXo', '.oXXXXo.', '..o..o..',
+  '.......oo.......',
+  '......oXXo......',
+  '......oXXo......',
+  '....ooXXXXoo....',
+  '...oXXHHHHXXo...',
+  '..oXHHXXXXXXXo..',
+  '.oXHXXXXXXXXXXo.',
+  'ooXXXXeeeeXXXXoo',
+  'ooXXXeeHHeeXXXoo',
+  '.oXXXXeeeeXXXXo.',
+  '.oXdXXXXXXXXdXo.',
+  '..oXdXXXXXXdXo..',
+  '....ooXXXXoo....',
+  '......oXXo......',
+  '......oXXo......',
+  '.......oo.......',
 ];
 
 // ─── THE REGISTRY ──────────────────────────────────────────────────────────
@@ -392,19 +493,19 @@ const RES = {
   bomb:    { kind: 'pixel', grid: BOMB,    map: BOMB_MAP,    px: 1.5, warnStroke: true },
   tp:      { kind: 'pixel', grid: TP,      map: TP_MAP,      px: 1.5, warnStroke: true },
   hint:    { kind: 'pixel', grid: HINT,    map: HINT_MAP,    px: 1.5, warnStroke: true },
-  explode: { kind: 'pixel', grid: EXPLODE, map: EXPLODE_MAP, px: 2.4 },
-  portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 2.4 },
+  explode: { kind: 'pixel', grid: EXPLODE, map: EXPLODE_MAP, px: 1.7 },
+  portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 1.7 },
   gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 1.5, warnStroke: true },
   chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 1.5 },
   bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 1.5 },
   lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 1.5 },
-  pad:     { kind: 'pixel', grid: PAD,     map: PAD_MAP,     px: 2.4 },
-  mine:    { kind: 'pixel', grid: MINE,    map: MINE_MAP,    px: 2.4, warnStroke: true },
+  pad:     { kind: 'pixel', grid: PAD,     map: PAD_MAP,     px: 1.5 },
+  mine:    { kind: 'pixel', grid: MINE,    map: MINE_MAP,    px: 1.5, warnStroke: true },
   // crack is vector (drawn in the sprite by broken state)
   crack:   { kind: 'vector' },
-  spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 2.4 },
+  spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 1.5 },
   turret:  { kind: 'pixel', grid: TURRET,  map: TURRET_MAP,  px: 1.5, warnMap: { B: '#fca5a5' } },
-  beam:    { kind: 'pixel', grid: BEAM,     map: BEAM_MAP,    px: 2.3 },
+  beam:    { kind: 'pixel', grid: BEAM,     map: BEAM_MAP,    px: 1.5 },
   // wall is vector by default (see note up top); set kind:'image' here to swap it.
   wall:    { kind: 'vector' },
 };
