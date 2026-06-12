@@ -69,11 +69,12 @@ const px = (grid, map, p, cx, cy, stroke) => {
 
 // ─── Pixel grids + color maps ──────────────────────────────────────────────
 
-// Hero (humanoid player)
+// Hero (humanoid player) — 16×20 chibi: head ≈ half the body, big eyes, blush
 const HERO_MAP = {
   o: '#0a1f38',                               // outline
   H: '#ef8a3a', h: '#fcd34d',                 // hair, hair highlight
   k: '#f7c89a', j: '#d29a6b',                 // skin, skin shadow
+  r: '#f4a9b8',                               // cheek blush
   e: '#0a1f38',                               // eyes
   T: '#38bdf8', t: '#cdeafe', u: '#0c4a6e',   // tunic, hi, shadow
   P: '#2563eb', p: '#1e3a8a',                 // cape, cape shadow
@@ -82,35 +83,57 @@ const HERO_MAP = {
   B: '#0b1830',                               // boots
 };
 const HERO = [
-  '....oooo....',
-  '..ooHHHHoo..',
-  '.oHHhhhhHHo.',
-  '.oHhhhhhhHo.',
-  '.ooHkkkkHoo.',
-  '..okkkkkko..',
-  '..okekkeko..',
-  '..okkjjkko..',
-  '...ojjjo....',
-  '.PPoTTTtoo..',
-  '.PpoTtTTuo..',
-  '..oTTTTTuo..',
-  '..obbbbbo...',
-  '..oGGGGGo...',
-  '.oBBo.oBBo..',
+  '.....oooooo.....',
+  '...ooHHHHHHoo...',
+  '..oHHhhhhhhHHo..',
+  '.oHHhhhhhhhhHHo.',
+  '.oHhhhhhhhhhhHo.',
+  'oHHhhhhhhhhhhHHo',
+  'oHHkkkkkkkkkkHHo',
+  'oHkkkkkkkkkkkkHo',
+  'oHkkeekkkkeekkHo',
+  'oHkkeekkkkeekkHo',
+  '.okkrkkkkkkrkko.',
+  '.ookkkjjjjkkkoo.',
+  '..ooojjjjjjooo..',
+  '.PPooTTTTTTooPP.',
+  'oPPoTTtTTTTuoPPo',
+  'oPpoTtTTTTTuoPpo',
+  'oPpoTTTTTTTuoPpo',
+  '.ooobbbbbbbooo..',
+  '..oGGGGGGGGGGo..',
+  '.oBBBoo..ooBBBo.',
 ];
 
-// Drone (enemy "bullet") — normal + frozen palettes
-const DRONE_MAP = { o: '#3a0a14', R: '#fb7185', r: '#fecdd3', d: '#9f1239', E: '#fde047', e: '#7c2d12', w: '#e11d48' };
-const DRONE_FZ  = { o: '#0a2a4a', R: '#93c5fd', r: '#e0f2fe', d: '#1e3a8a', E: '#bae6fd', e: '#1e3a8a', w: '#3b82f6' };
+// Drone (enemy "bullet") — round body, visor eyes; normal + frozen palettes
+const DRONE_MAP = {
+  o: '#4a0d18',                    // outline (deep wine)
+  R: '#fb7185', r: '#fda4af',      // body, highlight
+  d: '#be123c',                    // shade
+  E: '#fff1f2', e: '#1f0a0e',      // visor, pupils
+  w: '#e11d48',                    // accent fins
+};
+const DRONE_FZ = {
+  o: '#0f2f52', R: '#93c5fd', r: '#dbeafe',
+  d: '#2563eb', E: '#eff6ff', e: '#0a1a33', w: '#3b82f6',
+};
 const DRONE = [
-  '..oooo..',
-  '.oRrrRo.',
-  'oRRRRRRo',
-  'wREEEERw',
-  'oREeeERo',
-  'oRRRRRRo',
-  '.odRRdo.',
-  '..o..o..',
+  '......oooo......',
+  '....oorrrroo....',
+  '...orrrRRrrro...',
+  '..orRRRRRRRRro..',
+  '.orRRRRRRRRRRro.',
+  'owRREEEEEEEERRwo',
+  'owRREeeEEeeERRwo',
+  'oRRREEEEEEEERRRo',
+  'oRRRRRRRRRRRRRRo',
+  'oRRRRRRRRRRRRRRo',
+  '.odRRdddddddRdo.',
+  '.oddRRRRRRRRddo.',
+  '..oddddddddddo..',
+  '...od......do...',
+  '....o......o....',
+  '................',
 ];
 
 // Score star
@@ -141,30 +164,112 @@ const PORTAL_MAP = { X: '#6d28d9', H: '#a78bfa', W: '#e9d5ff', I: '#22d3ee' };
 const GEM = ['...XX...', '..XHHX..', '..XHHX..', 'XXHHHHXX', '.XHHHHX.', '..XHHX..', '.X.XX.X.', '........'];
 const GEM_MAP = { X: '#fbbf24', H: '#fffbeb' };
 
-// Chaser enemy (angry blob)
-const CHASER = ['..XXXX..', '.XEEEEX.', 'XEWEEWEX', 'XEEEEEEX', 'XEWWWWEX', 'XXWXXWXX', '.XEEEE X', '..X..X..'];
-const CHASER_MAP = { X: '#a21caf', E: '#c026d3', W: '#fae8ff' };
+// Chaser enemy — angry magenta blob: V-brows, teeth, dripping base
+const CHASER_MAP = {
+  o: '#4a1052',                    // outline
+  X: '#c026d3', H: '#f0abfc',      // body, highlight
+  d: '#86198f',                    // shade
+  W: '#fdf4ff', e: '#2e0a33',      // eye white / teeth, pupils+brows
+};
+const CHASER = [
+  '.....oooooo.....',
+  '...ooXXXXXXoo...',
+  '..oXXHHXXXXXXo..',
+  '.oXHHXXXXXXXXXo.',
+  '.oXXeXXXXXXeXXo.',
+  'oXXXeeXXXXeeXXXo',
+  'oXXWWeeXXeeWWXXo',
+  'oXXWWeeXXeeWWXXo',
+  'oXXXXXXXXXXXXXXo',
+  'oXXWWXXWWXXWWXXo',
+  'oXdXXXXXXXXXXdXo',
+  '.odXXXXXXXXXXdo.',
+  '.oddXXXXXXXXddo.',
+  '.oddXddXXddXddo.',
+  '..oo.oo..oo.oo..',
+  '................',
+];
 
 // Spike / hazard (lethal floor) — T = bright tip, X = base
 const SPIKE = ['........', '.T..T..T', '.TT.TT.T', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...', '........'];
 const SPIKE_MAP = { T: '#fca5a5', X: '#b91c1c' };
 
-// Turret / column cannon — B = muzzle (turns red on warn)
-const TURRET = ['.XGGGGX.', 'XGHHHHGX', 'XGHHHHGX', 'XGGGGGGX', '.XMMXM..', '..XBBX..', '..XBBX..', '...XX...'];
-const TURRET_MAP = { G: '#475569', H: '#94a3b8', M: '#334155', B: '#64748b', X: '#1e293b' };
-
-// Bouncer enemy (sharp diamond, distinct from the magenta chaser blob)
-const BOUNCER_MAP = { o: '#0c2a3a', X: '#22d3ee', H: '#a5f3fc', e: '#0e7490' };
-const BOUNCER = [
-  '...XX...', '..XHHX..', '.XHXXHX.', 'XHXeeXHX',
-  'XHXeeXHX', '.XHXXHX.', '..XHHX..', '...XX...',
+// Turret / column cannon — steel housing, barrel pointing down. B = muzzle (turns red on warn)
+const TURRET_MAP = {
+  o: '#0f172a',                    // outline
+  G: '#64748b', H: '#cbd5e1',      // steel, highlight
+  M: '#334155',                    // dark inset
+  B: '#94a3b8',                    // muzzle (warn → red)
+};
+const TURRET = [
+  '..oooooooooooo..',
+  '.oGGGGGGGGGGGGo.',
+  '.oGHHHHHHHHHHGo.',
+  '.oGHHGGGGGGHHGo.',
+  '.oGHGGGGGGGGHGo.',
+  '.oGGGMMMMMMGGGo.',
+  '.oGGMMMMMMMMGGo.',
+  '..oGGGMMMMGGGo..',
+  '...ooGMMMMGoo...',
+  '....oMBBBBMo....',
+  '....oMBBBBMo....',
+  '....oMBBBBMo....',
+  '.....oBBBBo.....',
+  '.....oBBBBo.....',
+  '......oooo......',
+  '................',
 ];
 
-// Lunger enemy (arrow-like charger)
-const LUNGER_MAP = { o: '#3a1a0a', X: '#fb923c', H: '#fed7aa', e: '#7c2d12' };
+// Bouncer enemy — cyan diamond with a dark core + deadpan eyes
+const BOUNCER_MAP = {
+  o: '#0c2f3f',                    // outline
+  X: '#22d3ee', H: '#a5f3fc',      // facet, highlight
+  d: '#0e7490',                    // core shade
+  W: '#ecfeff', e: '#083344',      // eye white, pupils
+};
+const BOUNCER = [
+  '.......oo.......',
+  '......oXXo......',
+  '.....oXHHXo.....',
+  '....oXHHHHXo....',
+  '...oXHHXXHHXo...',
+  '..oXHHXddXHHXo..',
+  '.oXHHXddddXHHXo.',
+  'oXHHXWeddeWXHHXo',
+  'oXHHXWWddWWXHHXo',
+  '.oXHHXddddXHHXo.',
+  '..oXHHXddXHHXo..',
+  '...oXHHXXHHXo...',
+  '....oXHHHHXo....',
+  '.....oXHHXo.....',
+  '......oXXo......',
+  '.......oo.......',
+];
+
+// Lunger enemy — orange arrowhead charger with glaring eyes
+const LUNGER_MAP = {
+  o: '#431407',                    // outline
+  X: '#fb923c', H: '#fed7aa',      // body, highlight
+  d: '#c2410c',                    // shade
+  W: '#fff7ed', e: '#27100a',      // eye white, pupils
+};
 const LUNGER = [
-  '...XX...', '..XHHX..', '.XHHHHX.', 'XHHeeHHX',
-  'XHHHHHHX', '.XXHHXX.', '..X..X..', '.X....X.',
+  '.......oo.......',
+  '......oXXo......',
+  '.....oXHHXo.....',
+  '....oXHHHHXo....',
+  '...oXHHHHHHXo...',
+  '..oXHeHHHHeHXo..',
+  '.oXHWeeHHeeWHXo.',
+  'oXHHWWeHHeWWHHXo',
+  'oXHHHHHHHHHHHHXo',
+  'oXXHHHHHHHHHHXXo',
+  '.oXXHHHddHHHXXo.',
+  '..oXXHHddHHXXo..',
+  '...oXXdddddXo...',
+  '..oXXo.oo.oXXo..',
+  '..oXo......oXo..',
+  '..o..........o..',
 ];
 
 // Conveyor pad arrow (drawn pointing east at dir 1; rotated per dir in the sprite)
@@ -190,9 +295,9 @@ const MINE = [
 
 // ─── THE REGISTRY ──────────────────────────────────────────────────────────
 const RES = {
-  player:  { kind: 'pixel', grid: HERO,    map: HERO_MAP,    px: 2.4, ox: 5.5, oy: 8 },
-  drone:   { kind: 'pixel', grid: DRONE,   map: DRONE_MAP,   px: 2.3, ox: 3.5, oy: 3.5 },
-  droneFz: { kind: 'pixel', grid: DRONE,   map: DRONE_FZ,    px: 2.3, ox: 3.5, oy: 3.5 },
+  player:  { kind: 'pixel', grid: HERO,    map: HERO_MAP,    px: 1.6, ox: 8, oy: 11 },
+  drone:   { kind: 'pixel', grid: DRONE,   map: DRONE_MAP,   px: 1.5 },
+  droneFz: { kind: 'pixel', grid: DRONE,   map: DRONE_FZ,    px: 1.5 },
   star:    { kind: 'pixel', grid: STAR,    map: STAR_MAP,    px: 2.3, warnStroke: true },
   bomb:    { kind: 'pixel', grid: BOMB,    map: BOMB_MAP,    px: 2.3, warnStroke: true },
   tp:      { kind: 'pixel', grid: TP,      map: TP_MAP,      px: 2.3, warnStroke: true },
@@ -200,15 +305,15 @@ const RES = {
   explode: { kind: 'pixel', grid: EXPLODE, map: EXPLODE_MAP, px: 2.4 },
   portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 2.4 },
   gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 2.5, warnStroke: true },
-  chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 2.5 },
-  bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 2.5 },
-  lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 2.5 },
+  chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 1.5 },
+  bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 1.5 },
+  lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 1.5 },
   pad:     { kind: 'pixel', grid: PAD,     map: PAD_MAP,     px: 2.4 },
   mine:    { kind: 'pixel', grid: MINE,    map: MINE_MAP,    px: 2.4, warnStroke: true },
   // crack is vector (drawn in the sprite by broken state)
   crack:   { kind: 'vector' },
   spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 2.4 },
-  turret:  { kind: 'pixel', grid: TURRET,  map: TURRET_MAP,  px: 2.4, warnMap: { B: '#fca5a5' } },
+  turret:  { kind: 'pixel', grid: TURRET,  map: TURRET_MAP,  px: 1.5, warnMap: { B: '#fca5a5' } },
   beam:    { kind: 'pixel', grid: BEAM,     map: BEAM_MAP,    px: 2.3 },
   // wall is vector by default (see note up top); set kind:'image' here to swap it.
   wall:    { kind: 'vector' },

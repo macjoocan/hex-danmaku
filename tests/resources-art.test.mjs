@@ -6,7 +6,11 @@ const RES = loadRES();
 const pixels = Object.entries(RES).filter(([, e]) => e.kind === 'pixel');
 
 // 리스킨이 끝난 키만 여기 추가한다 (스펙: 16×16, 히어로만 16×20)
-const EXPECTED_SIZE = {};
+const EXPECTED_SIZE = {
+  player: [16, 20],
+  drone: [16, 16], droneFz: [16, 16], chaser: [16, 16],
+  bouncer: [16, 16], lunger: [16, 16], turret: [16, 16],
+};
 
 test('every pixel grid is rectangular', () => {
   for (const [name, e] of pixels) {
