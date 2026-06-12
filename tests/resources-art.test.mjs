@@ -10,6 +10,7 @@ const EXPECTED_SIZE = {
   player: [16, 20],
   drone: [16, 16], droneFz: [16, 16], chaser: [16, 16],
   bouncer: [16, 16], lunger: [16, 16], turret: [16, 16],
+  star: [16, 16], bomb: [16, 16], tp: [16, 16], hint: [16, 16], gem: [16, 16],
 };
 
 test('every pixel grid is rectangular', () => {

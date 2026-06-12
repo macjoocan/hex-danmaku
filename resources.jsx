@@ -136,21 +136,94 @@ const DRONE = [
   '................',
 ];
 
-// Score star
-const STAR = ['...XX...', '...XX...', '..XHHX..', 'XXHHHHXX', '.XHHHHX.', '..X..X..', '.X....X.', '........'];
-const STAR_MAP = { X: '#fbbf24', H: '#fde68a' };
+// Score star — 5-point star with top-left gloss
+const STAR_MAP = { o: '#7c4a03', X: '#fbbf24', H: '#fde68a', d: '#d97706' };
+const STAR = [
+  '.......oo.......',
+  '......oXXo......',
+  '......oXXo......',
+  '.....oXHHXo.....',
+  '.....oXHHXo.....',
+  'ooooooXHHXoooooo',
+  'oXXXXXHHHHXXXXXo',
+  '.oXXHHHHHHHHXXo.',
+  '..oXXHHHHHHXXo..',
+  '...oXXHHHHXXo...',
+  '...oXXXXXXXXo...',
+  '..oXXXXddXXXXo..',
+  '..oXXdo..odXXo..',
+  '.oXdo......odXo.',
+  '.oo..........oo.',
+  '................',
+];
 
-// Bomb pickup
-const BOMB = ['.....XX.', '....XF..', '..XXXXX.', '.XHHHHXX', '.XHHHHHX', '.XBHHHHX', '.XXHHHXX', '..XXXXX.'];
-const BOMB_MAP = { X: '#34d399', F: '#fbbf24', H: '#6ee7b7', B: '#bbf7d0' };
+// Bomb pickup — round green bomb, lit fuse top-right
+const BOMB_MAP = {
+  o: '#064e3b', X: '#34d399', H: '#a7f3d0', d: '#059669',
+  F: '#fbbf24', f: '#f97316',
+};
+const BOMB = [
+  '..........ff....',
+  '.........fFFf...',
+  '..........oo....',
+  '.....ooooooo....',
+  '...ooXXXXXXoo...',
+  '..oXXHHXXXXXXo..',
+  '.oXHHHHXXXXXXXo.',
+  '.oXHHXXXXXXXXXo.',
+  'oXXHXXXXXXXXXXXo',
+  'oXXXXXXXXXXXXXXo',
+  'oXXXXXXXXXXXXXXo',
+  'oXdXXXXXXXXXXdXo',
+  '.odXXXXXXXXXXdo.',
+  '.oddXXXXXXXXddo.',
+  '..oddddddddddo..',
+  '...oooooooooo...',
+];
 
-// Warp / teleport pickup
-const TP = ['...XX...', '..XHHX..', '.XHXXHX.', 'XHXHHXHX', 'XHXHHXHX', '.XHXXHX.', '..XHHX..', '...XX...'];
-const TP_MAP = { X: '#c084fc', H: '#e9d5ff' };
+// Warp / teleport pickup — purple ring with a small core
+const TP_MAP = { o: '#4c1d95', X: '#c084fc', H: '#ede9fe', d: '#7e22ce' };
+const TP = [
+  '................',
+  '.....oooooo.....',
+  '...ooXXXXXXoo...',
+  '..oXXHHHHHHXXo..',
+  '.oXXHooooooHXXo.',
+  '.oXHo..dd..oHXo.',
+  'oXHo..dXXd..oHXo',
+  'oXHo.dXHHXd.oHXo',
+  'oXHo.dXHHXd.oHXo',
+  'oXHo..dXXd..oHXo',
+  '.oXHo..dd..oHXo.',
+  '.oXXHooooooHXXo.',
+  '..oXXHHHHHHXXo..',
+  '...ooXXXXXXoo...',
+  '.....oooooo.....',
+  '................',
+];
 
-// Foresight (hint) pickup
-const HINT = ['........', '..OOOO..', '.OWWWWO.', 'OWIIIIWO', 'OWIPPIWO', '.OWIIWO.', '..OOOO..', '........'];
-const HINT_MAP = { O: '#7c2d12', W: '#fff7ed', I: '#f97316', P: '#1c1917' };
+// Foresight (hint) pickup — all-seeing eye lens
+const HINT_MAP = {
+  o: '#431407', W: '#fff7ed', I: '#f97316', P: '#1c1917', d: '#c2410c',
+};
+const HINT = [
+  '................',
+  '......oooo......',
+  '....ooddddoo....',
+  '..oodWWWWWWdoo..',
+  '.odWWWWWWWWWWdo.',
+  'odWWWWIIIIWWWWdo',
+  'odWWWIIIIIIWWWdo',
+  'odWWIIWPPPIIWWdo',
+  'odWWIIPPPPIIWWdo',
+  'odWWWIIIIIIWWWdo',
+  'odWWWWIIIIWWWWdo',
+  '.odWWWWWWWWWWdo.',
+  '..oodWWWWWWdoo..',
+  '....ooddddoo....',
+  '......oooo......',
+  '................',
+];
 
 // Explosion burst
 const EXPLODE = ['X.X..X.X', '.XX..XX.', 'XXXXXXXX', '..XHHX..', '..XHHX..', 'XXXXXXXX', '.XX..XX.', 'X.X..X.X'];
@@ -160,9 +233,26 @@ const EXPLODE_MAP = { X: '#ff7a3d', H: '#fff7ed' };
 const PORTAL = ['.XXXXXX.', 'XHHHHHHX', 'XHWWWWHX', 'XHWIIWHX', 'XHWIIWHX', 'XHWWWWHX', 'XHHHHHHX', '.XXXXXX.'];
 const PORTAL_MAP = { X: '#6d28d9', H: '#a78bfa', W: '#e9d5ff', I: '#22d3ee' };
 
-// Required gem (collect stages)
-const GEM = ['...XX...', '..XHHX..', '..XHHX..', 'XXHHHHXX', '.XHHHHX.', '..XHHX..', '.X.XX.X.', '........'];
-const GEM_MAP = { X: '#fbbf24', H: '#fffbeb' };
+// Required gem (collect stages) — faceted cut stone, distinct octagon silhouette vs the star
+const GEM_MAP = { o: '#854d0e', X: '#fbbf24', H: '#fffbeb', d: '#ca8a04' };
+const GEM = [
+  '................',
+  '................',
+  '....oooooooo....',
+  '...oXHHHHHHXo...',
+  '..oXHHXXXXHHXo..',
+  '.oXXXXXXXXXXXXo.',
+  '.oXXXXXXXXXXXXo.',
+  '.oXdXXdXXdXXdXo.',
+  '..odXXXXXXXXdo..',
+  '...odXXXXXXdo...',
+  '....odXXXXdo....',
+  '.....odXXdo.....',
+  '......odXo......',
+  '.......oo.......',
+  '................',
+  '................',
+];
 
 // Chaser enemy — angry magenta blob: V-brows, teeth, dripping base
 const CHASER_MAP = {
@@ -298,13 +388,13 @@ const RES = {
   player:  { kind: 'pixel', grid: HERO,    map: HERO_MAP,    px: 1.6, ox: 8, oy: 11 },
   drone:   { kind: 'pixel', grid: DRONE,   map: DRONE_MAP,   px: 1.5 },
   droneFz: { kind: 'pixel', grid: DRONE,   map: DRONE_FZ,    px: 1.5 },
-  star:    { kind: 'pixel', grid: STAR,    map: STAR_MAP,    px: 2.3, warnStroke: true },
-  bomb:    { kind: 'pixel', grid: BOMB,    map: BOMB_MAP,    px: 2.3, warnStroke: true },
-  tp:      { kind: 'pixel', grid: TP,      map: TP_MAP,      px: 2.3, warnStroke: true },
-  hint:    { kind: 'pixel', grid: HINT,    map: HINT_MAP,    px: 2.3, warnStroke: true },
+  star:    { kind: 'pixel', grid: STAR,    map: STAR_MAP,    px: 1.5, warnStroke: true },
+  bomb:    { kind: 'pixel', grid: BOMB,    map: BOMB_MAP,    px: 1.5, warnStroke: true },
+  tp:      { kind: 'pixel', grid: TP,      map: TP_MAP,      px: 1.5, warnStroke: true },
+  hint:    { kind: 'pixel', grid: HINT,    map: HINT_MAP,    px: 1.5, warnStroke: true },
   explode: { kind: 'pixel', grid: EXPLODE, map: EXPLODE_MAP, px: 2.4 },
   portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 2.4 },
-  gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 2.5, warnStroke: true },
+  gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 1.5, warnStroke: true },
   chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 1.5 },
   bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 1.5 },
   lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 1.5 },
