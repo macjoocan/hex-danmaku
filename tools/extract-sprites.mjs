@@ -9,22 +9,17 @@
  * pure-JS section between the grid definitions and drawArt() and evaluate it.
  * Vector entries (wall, crack) have no pixel grid and are skipped.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadRES } from './res-data.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = resolve(root, process.argv[2] || 'assets/extracted');
 const scale = Math.max(1, parseInt(process.argv[3] || '16', 10));
 
-// ── pull the grid/map/RES literals out of resources.jsx ──
-const src = readFileSync(join(root, 'resources.jsx'), 'utf8');
-const start = src.indexOf('// ─── Pixel grids');
-const end = src.indexOf('// ─── drawArt');
-if (start < 0 || end < 0) throw new Error('resources.jsx markers not found — file layout changed?');
-const section = src.slice(start, end);
-const RES = new Function(`${section}; return RES;`)();
+const RES = loadRES();
 
 // ── minimal PNG encoder (RGBA8, no deps) ──
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
