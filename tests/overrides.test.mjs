@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadEditor } from './harness.mjs';
+import { loadEditor, plain } from './harness.mjs';
 
 test('buildBalance merges patch over DEFAULT_BAL', () => {
   const { HXE, HX } = loadEditor();
@@ -100,6 +100,14 @@ test('validateStage does not false-warn on shipped reworked stages', () => {
       assert.ok(res.ok, `id ${id} seed ${seed} should be fair: ${res.warnings[0]}`);
     }
   }
+});
+
+test('buildBalance merges coin section and clamps negatives to 0', () => {
+  const { HXE, HX } = loadEditor();
+  const b = plain(HXE.buildBalance({ coin: { clearPerStar: -10, pickupValue: 7 } }));
+  assert.equal(b.coin.clearPerStar, 0);
+  assert.equal(b.coin.pickupValue, 7);
+  assert.equal(b.coin.repeatPerStar, 5);   // unspecified key keeps default
 });
 
 test('validateStage flags a genuinely unfair stage (full-width volley)', () => {

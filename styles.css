@@ -541,6 +541,7 @@ body::before {
 }
 .go-card .row .v { color: var(--tx-1); }
 .go-card .row.hi .v { color: var(--gold); }
+.go-card .row.coin .v { color: #fbbf24; }
 .go-card button {
   margin-top: 6px;
   background: var(--player);

@@ -39,6 +39,16 @@ const buildBalance = (patch) => {
     b.enemy.chaseEvery = atLeastOne(b.enemy.chaseEvery);
     b.enemy.lungeDash = atLeastOne(b.enemy.lungeDash);
   }
+  if (b.coin) {
+    ['clearPerStar', 'repeatPerStar', 'pickupValue', 'spawnChance', 'max'].forEach(k => {
+      b.coin[k] = Math.max(0, Number(b.coin[k]) || 0);
+    });
+  }
+  if (b.skill) {
+    ['undoCoin', 'bombCoin', 'freezeCoin', 'usesPerRun'].forEach(k => {
+      b.skill[k] = Math.max(0, Number(b.skill[k]) || 0);
+    });
+  }
   return b;
 };
 

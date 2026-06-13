@@ -123,7 +123,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   useEffect(() => {
     if (isStage && g.win && !g._test) {
       const sNum = HXS.rateStage(g);
-      const first = !HXS.loadStars()[g.stage.id];
+      const first = !stars[g.stage.id];
       setEarned(sNum);
       setStars(HXS.saveStars(g.stage.id, sNum));
       const reward = HXS.coinReward(sNum, first);
