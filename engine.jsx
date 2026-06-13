@@ -41,7 +41,8 @@ const hd = (r1, c1, r2, c2) => {
 
 // ─── Balance config (editor-tunable via window.HXB; defaults match originals) ───
 const DEFAULT_BAL = {
-  skill: { undoCost: 30, bombCost: 50, bombRadius: 2, freezeCost: 80, freezeTurns: 3 },
+  skill: { undoCost: 30, bombCost: 50, bombRadius: 2, freezeCost: 80, freezeTurns: 3,
+           undoCoin: 20, bombCoin: 30, freezeCoin: 40, usesPerRun: 2 },
   score: { surviveBase: 10, comboCap: 10, gemBase: 80, gemCombo: 4, starBase: 50, starCombo: 3 },
   item:  { spawnChance: 0.24, max: 3, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // ht = remainder
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
@@ -487,30 +488,52 @@ const tick = (s, nr, nc) => {
 };
 
 // ─── Skills ────────────────────────────────────────────────────
+// 모드별 스킬 결제. 성공 시 차감 패치(코인 or 점수)를, 불가 시 null을 돌려준다.
+// stage: 코인 + 런당 회수 제한(usesPerRun, 0=무제한) / endless: 점수 차감(현행).
+const skillPay = (s, key) => {
+  const k = bal().skill;
+  if (s.mode === 'stage') {
+    const cost = k[key + 'Coin'];
+    const lim = k.usesPerRun;
+    const left = (s.skillLeft && key in s.skillLeft) ? s.skillLeft[key] : lim;
+    if ((s.coins || 0) < cost) return null;
+    if (lim > 0 && left <= 0) return null;
+    return {
+      coins: s.coins - cost,
+      skillLeft: lim > 0 ? { ...s.skillLeft, [key]: left - 1 } : s.skillLeft,
+    };
+  }
+  const cost = k[key + 'Cost'];
+  return s.sc < cost ? null : { sc: s.sc - cost };
+};
+
 const doUndo = (s) => {
-  const c = bal().skill.undoCost;
-  return (!s.hist || s.sc < c || s.ov || s.win) ? s
-    : { ...s.hist, sc: s.sc - c, hist: null, ov: false, win: false, evts: [], skillUses: (s.skillUses || 0) + 1 };
+  if (!s.hist || s.ov || s.win) return s;
+  const pay = skillPay(s, 'undo');
+  if (!pay) return s;
+  return { ...s.hist, ...pay, hist: null, ov: false, win: false, evts: [], skillUses: (s.skillUses || 0) + 1 };
 };
 
 const doBomb = (s) => {
-  const { bombCost: c, bombRadius: rad } = bal().skill;
-  if (s.sc < c || s.ov || s.win) return s;
+  if (s.ov || s.win) return s;
+  const pay = skillPay(s, 'bomb');
+  if (!pay) return s;
+  const rad = bal().skill.bombRadius;
   const xc = s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) <= rad);
   return {
-    ...s,
+    ...s, ...pay,
     bl: s.bl.filter(b => hd(s.pl.r, s.pl.c, b.r, b.c) > rad),
     enemies: (s.enemies || []).filter(e => hd(s.pl.r, s.pl.c, e.r, e.c) > rad),
-    sc: s.sc - c,
     skillUses: (s.skillUses || 0) + 1,
     evts: [{ ty: 'bm', r: s.pl.r, c: s.pl.c, cells: xc.map(b => `${b.r},${b.c}`) }],
   };
 };
 
 const doFreeze = (s) => {
-  const { freezeCost: c, freezeTurns: ft } = bal().skill;
-  return (s.sc < c || s.fz > 0 || s.ov || s.win) ? s
-    : { ...s, fz: ft, sc: s.sc - c, skillUses: (s.skillUses || 0) + 1, evts: [] };
+  if (s.fz > 0 || s.ov || s.win) return s;
+  const pay = skillPay(s, 'freeze');
+  if (!pay) return s;
+  return { ...s, ...pay, fz: bal().skill.freezeTurns, skillUses: (s.skillUses || 0) + 1, evts: [] };
 };
 
 // ─── Init (endless) ────────────────────────────────────────────

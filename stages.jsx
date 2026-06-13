@@ -376,7 +376,7 @@ const initStageDef = (def, idx = 0) => {
     enemies: (def.enemies || []).map(e => ({ ...e })),
     goal: def.goal ? { ...def.goal } : null,
     gems: (def.gems || []).map(g => ({ ...g })),
-    t: 0, sc: 0, ov: false, win: false, ln: '', its: [], fz: 0, ht: 0,
+    t: 0, sc: 0, coins: loadCoins(), ov: false, win: false, ln: '', its: [], fz: 0, ht: 0,
     hist: null, combo: 0, bossWaves: 0, obj: objFor(def), skillUses: 0,
     si: def.firstDelay != null ? def.firstDelay : 1, evts: [],
   };
