@@ -40,11 +40,11 @@ const buildBalance = (patch) => {
     b.enemy.lungeDash = atLeastOne(b.enemy.lungeDash);
   }
   if (b.coin) {
-    ['clearPerStar', 'repeatPerStar', 'pickupValue', 'spawnChance', 'max'].forEach(k => {
-      b.coin[k] = Math.max(0, Number(b.coin[k]) || 0);
-    });
+    // All coin keys share the >=0-number invariant — iterate DEFAULT_BAL to stay drift-proof.
+    Object.keys(window.HX.DEFAULT_BAL.coin).forEach(k => { b.coin[k] = Math.max(0, Number(b.coin[k]) || 0); });
   }
   if (b.skill) {
+    // Explicit list: bombRadius/freezeTurns are >=1 engine fields clamped via atLeastOne elsewhere.
     ['undoCoin', 'bombCoin', 'freezeCoin', 'usesPerRun'].forEach(k => {
       b.skill[k] = Math.max(0, Number(b.skill[k]) || 0);
     });
