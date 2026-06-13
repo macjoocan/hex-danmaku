@@ -499,7 +499,7 @@ const skillPay = (s, key) => {
     if ((s.coins || 0) < cost) return null;
     if (lim > 0 && left <= 0) return null;
     return {
-      coins: s.coins - cost,
+      coins: (s.coins || 0) - cost,
       skillLeft: lim > 0 ? { ...s.skillLeft, [key]: left - 1 } : s.skillLeft,
     };
   }

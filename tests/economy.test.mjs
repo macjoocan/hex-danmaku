@@ -83,11 +83,11 @@ test('endless mode: bomb still pays score (regression)', () => {
 
 test('stage mode: undo restores hist but charges undo coins from current, no refund', () => {
   const { HX } = loadEditor();
-  const hist = stageState({ coins: 70, t: 2 });
+  const hist = stageState({ coins: 100, t: 2 });
   const cur = stageState({ coins: 70, t: 3, hist });
   const n = HX.doUndo(cur);
   assert.equal(plain(n).t, 2);
-  assert.equal(plain(n).coins, 50);  // 70 - 20
+  assert.equal(plain(n).coins, 50);  // 70 - 20 (a refunding impl would yield 80)
 });
 
 test('initStageDef seeds coins from wallet', () => {
@@ -95,4 +95,42 @@ test('initStageDef seeds coins from wallet', () => {
   HXS.saveCoins(77);
   const g = HXS.initStageDef({ id: 1, type: 'survive', surviveTurns: 5, pool: [] });
   assert.equal(plain(g).coins, 77);
+});
+
+test('endless mode: undo restores hist and pays score from current', () => {
+  const { HX } = loadEditor();
+  const hist = stageState({ mode: 'endless', sc: 400, t: 2 });
+  const cur = stageState({ mode: 'endless', sc: 500, t: 3, hist });
+  const n = HX.doUndo(cur);
+  assert.equal(plain(n).t, 2);
+  assert.equal(plain(n).sc, 470);  // 500 - 30 (NOT 400 - 30 = 370)
+});
+
+test('stage mode: undo does not refund skill uses', () => {
+  const { HX } = loadEditor();
+  // Use bomb twice to exhaust the per-run limit (usesPerRun=2)
+  const s = stageState({ coins: 1000 });
+  const after1 = HX.doBomb(s);
+  const after2 = HX.doBomb(after1);
+  assert.equal(plain(after2.skillLeft).bomb, 0);  // both uses consumed
+
+  // Simulate an undo: hist has fresh coins but undo returns ...s.hist spread with pay from current
+  const cur = { ...after2, hist: stageState({ coins: 1000, t: 2 }) };
+  const result = HX.doUndo(cur);
+
+  // skillLeft comes from current (after2), not from hist — bomb is still 0
+  assert.equal(plain(result.skillLeft).bomb, 0);
+
+  // A further doBomb on the undo result must be a no-op (uses exhausted)
+  const afterBomb = HX.doBomb(result);
+  assert.equal(plain(afterBomb).coins, plain(result).coins);  // coins unchanged
+});
+
+test('stage mode: freeze smoke test', () => {
+  const { HX } = loadEditor();
+  const s = stageState();
+  const n = HX.doFreeze(s);
+  assert.equal(plain(n).coins, 60);  // 100 - 40
+  assert.equal(plain(n).fz, 3);
+  assert.equal(plain(n).sc, 500);    // score untouched
 });
