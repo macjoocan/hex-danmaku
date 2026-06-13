@@ -216,13 +216,56 @@ test('tryCoin respects coin.max', () => {
     coin: { ...HX.DEFAULT_BAL.coin, spawnChance: 1.0, max: 2 },
   };
   try {
-    // 2 cn items already present — at coin.max
+    // 2 cn items + 1 non-cn item — max counted by cn only, still no spawn (2 cn = max 2 reached)
     const existingIts = [
       { r: 2, c: 0, ty: 'cn' },
       { r: 3, c: 0, ty: 'cn' },
+      { r: 4, c: 0, ty: 'sc' },
     ];
     const result = HX.tryCoin(existingIts, { r: 8, c: 3 }, []);
-    assert.equal(plain(result).length, 2); // unchanged — max reached
+    assert.equal(plain(result).length, 3); // unchanged — max reached (3 items, no new coin)
+
+    // Inverse: 1 cn + 2 sc items → spawn ALLOWED (only 1 cn, max=2 not reached)
+    const existingIts2 = [
+      { r: 2, c: 0, ty: 'cn' },
+      { r: 3, c: 0, ty: 'sc' },
+      { r: 4, c: 0, ty: 'sc' },
+    ];
+    const result2 = HX.tryCoin(existingIts2, { r: 8, c: 3 }, []);
+    assert.equal(plain(result2).length, 4); // spawned one more coin
+    assert.equal(plain(result2).filter(i => i.ty === 'cn').length, 2); // exactly 2 cn now
+  } finally {
+    delete win.HXB;
+  }
+});
+
+test('tryCoin avoids stage blockers (walls/spikes/gems/goal/etc.)', () => {
+  // Build a blocked list that covers all candidate cells (r=1..R-2, c=0..C-1)
+  // except exactly one free cell at (5, 6). Verify the coin spawns there.
+  // R=11, C=7 (from engine.jsx constants).
+  const { HX, win } = loadEditor({ seed: 1 });
+  win.HXB = {
+    ...HX.DEFAULT_BAL,
+    coin: { ...HX.DEFAULT_BAL.coin, spawnChance: 1.0, max: 10 },
+  };
+  try {
+    const R = 11, C = 7;
+    const freeCell = { r: 5, c: 6 };
+    // Cover every candidate cell except freeCell
+    const blocked = [];
+    for (let r = 1; r < R - 1; r++) {
+      for (let c = 0; c < C; c++) {
+        if (r === freeCell.r && c === freeCell.c) continue;
+        blocked.push({ r, c });
+      }
+    }
+    // pl at (8,3), no bullets (bl=[]), no existing items
+    const result = HX.tryCoin([], { r: 8, c: 3 }, [], blocked);
+    const its = plain(result);
+    assert.equal(its.length, 1);
+    assert.equal(its[0].ty, 'cn');
+    assert.equal(its[0].r, freeCell.r);
+    assert.equal(its[0].c, freeCell.c);
   } finally {
     delete win.HXB;
   }

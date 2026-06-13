@@ -139,12 +139,13 @@ const tryItem = (its, pl, bl) => {
 
 // stage-only coin drop — separate from tryItem so the endless pickup pool
 // (and stage balance) stays untouched; cn is non-lethal so fairness is unaffected.
-const tryCoin = (its, pl, bl) => {
+const tryCoin = (its, pl, bl, blocked = []) => {
   const cb = bal().coin;
   if (its.filter(i => i.ty === 'cn').length >= cb.max) return its;
   if (Math.random() > cb.spawnChance) return its;
   const occ = new Set([
     ...bl.map(b => `${b.r},${b.c}`),
+    ...blocked.map(o => `${o.r},${o.c}`),
     `${pl.r},${pl.c}`,
     ...its.map(i => `${i.r},${i.c}`),
   ]);
@@ -485,7 +486,10 @@ const tick = (s, nr, nc) => {
 
   // stage: dedicated coin-only spawner; endless: full utility pickup pool
   if (!ov && !win) its = isStage
-    ? tryCoin(its, { r: finalR, c: finalC }, mv)
+    ? tryCoin(its, { r: finalR, c: finalC }, mv, [
+        ...walls, ...turrets, ...spikes, ...cracks, ...pads, ...gems,
+        ...enemies, ...(beams || []), ...(s.goal ? [s.goal] : []),
+      ])
     : tryItem(its, { r: finalR, c: finalC }, mv);
 
   // crack collapses when the player leaves it
