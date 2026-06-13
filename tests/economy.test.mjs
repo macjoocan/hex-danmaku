@@ -161,24 +161,68 @@ test('collecting a cn pickup adds pickupValue coins and pushes a cn event', () =
   assert.equal(plain(result.its).length, 0);            // item consumed
 });
 
-test('tryItem never rolls cn outside stage mode', () => {
-  // seed=1: makeRng(1) sequence starts well under spawnChance threshold,
-  // and with pCoin=1.0 + spawnChance=1.0 the roll always picks cn in stage mode.
+test('stage tick can spawn a cn coin (dedicated spawner)', () => {
+  // Force spawnChance=1.0 via HXB so the coin spawn always triggers.
+  // The sandboxed Math.random is seeded (seed=1) so candidate cell selection is deterministic.
   const { HX, win } = loadEditor({ seed: 1 });
   win.HXB = {
     ...HX.DEFAULT_BAL,
-    item: { ...HX.DEFAULT_BAL.item, pCoin: 1.0, spawnChance: 1.0 },
+    coin: { ...HX.DEFAULT_BAL.coin, spawnChance: 1.0, max: 2 },
   };
   try {
-    // endless: pCn = 0, so cn is never the result even with roll=0
-    const its1 = HX.tryItem([], { r: 8, c: 3 }, [], 'endless');
-    assert.equal(its1.length, 1);
-    assert.notEqual(its1[0].ty, 'cn');
+    const s = tickStageState({ its: [] });
+    const result = HX.tick(s, s.pl.r, s.pl.c); // stay in place
+    const its = plain(result.its);
+    assert.equal(its.length, 1);
+    assert.equal(its[0].ty, 'cn');
+  } finally {
+    delete win.HXB;
+  }
+});
 
-    // stage: pCn = 1.0, so roll < 1.0 is always true → ty === 'cn'
-    const its2 = HX.tryItem([], { r: 8, c: 3 }, [], 'stage');
-    assert.equal(its2.length, 1);
-    assert.equal(its2[0].ty, 'cn');
+test('endless tick never spawns cn', () => {
+  // tryItem has no pCoin branch, so cn can never appear regardless of the roll.
+  // Force spawnChance=1.0 to guarantee an item does spawn, then verify it's not cn.
+  const { HX, win } = loadEditor({ seed: 42 });
+  win.HXB = {
+    ...HX.DEFAULT_BAL,
+    item: { ...HX.DEFAULT_BAL.item, spawnChance: 1.0, max: 3 },
+  };
+  try {
+    const s = {
+      ...HX.initState(),
+      mode: 'endless',
+      its: [],
+      si: 99, np: { c: [], n: '' }, np2: { c: [], n: '' },
+      cracks: [], pads: [], turrets: [], spikes: [], gems: [],
+      lasers: [], beams: [],
+      ht: 0, combo: 0, bossWaves: 0, fz: 0,
+      obj: null, stage: null, evts: [],
+    };
+    const result = HX.tick(s, s.pl.r, s.pl.c);
+    const its = plain(result.its);
+    assert.equal(its.length, 1); // one item spawned
+    assert.notEqual(its[0].ty, 'cn'); // never cn in endless
+  } finally {
+    delete win.HXB;
+  }
+});
+
+test('tryCoin respects coin.max', () => {
+  // Force spawnChance=1.0 — but with 2 cn items at max=2 it should bail out early.
+  const { HX, win } = loadEditor({ seed: 1 });
+  win.HXB = {
+    ...HX.DEFAULT_BAL,
+    coin: { ...HX.DEFAULT_BAL.coin, spawnChance: 1.0, max: 2 },
+  };
+  try {
+    // 2 cn items already present — at coin.max
+    const existingIts = [
+      { r: 2, c: 0, ty: 'cn' },
+      { r: 3, c: 0, ty: 'cn' },
+    ];
+    const result = HX.tryCoin(existingIts, { r: 8, c: 3 }, []);
+    assert.equal(plain(result).length, 2); // unchanged — max reached
   } finally {
     delete win.HXB;
   }

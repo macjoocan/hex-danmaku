@@ -44,10 +44,10 @@ const DEFAULT_BAL = {
   skill: { undoCost: 30, bombCost: 50, bombRadius: 2, freezeCost: 80, freezeTurns: 3,
            undoCoin: 20, bombCoin: 30, freezeCoin: 40, usesPerRun: 2 },
   score: { surviveBase: 10, comboCap: 10, gemBase: 80, gemCombo: 4, starBase: 50, starCombo: 3 },
-  item:  { spawnChance: 0.24, max: 3, pCoin: 0.15, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // pCoin: stage-only; ht = remainder
+  item:  { spawnChance: 0.24, max: 3, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // ht = remainder
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
-  coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5 },
+  coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5, spawnChance: 0.08, max: 2 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -112,7 +112,7 @@ const safest = (bl, pl, walls = []) => {
   return best;
 };
 
-const tryItem = (its, pl, bl, mode) => {
+const tryItem = (its, pl, bl) => {
   if (its.length >= bal().item.max) return its;
   if (Math.random() > bal().item.spawnChance) return its;
   const occ = new Set([
@@ -130,13 +130,33 @@ const tryItem = (its, pl, bl, mode) => {
   const cell = cands[Math.floor(Math.random() * cands.length)];
   const roll = Math.random();
   const it = bal().item;
-  const pCn = mode === 'stage' ? (it.pCoin || 0) : 0;
-  const ty = roll < pCn ? 'cn'
-           : roll < pCn + it.pSc ? 'sc'
-           : roll < pCn + it.pSc + it.pBm ? 'bm'
-           : roll < pCn + it.pSc + it.pBm + it.pTp ? 'tp'
+  const ty = roll < it.pSc ? 'sc'
+           : roll < it.pSc + it.pBm ? 'bm'
+           : roll < it.pSc + it.pBm + it.pTp ? 'tp'
            : 'ht';
   return [...its, { ...cell, ty }];
+};
+
+// stage-only coin drop — separate from tryItem so the endless pickup pool
+// (and stage balance) stays untouched; cn is non-lethal so fairness is unaffected.
+const tryCoin = (its, pl, bl) => {
+  const cb = bal().coin;
+  if (its.filter(i => i.ty === 'cn').length >= cb.max) return its;
+  if (Math.random() > cb.spawnChance) return its;
+  const occ = new Set([
+    ...bl.map(b => `${b.r},${b.c}`),
+    `${pl.r},${pl.c}`,
+    ...its.map(i => `${i.r},${i.c}`),
+  ]);
+  const cands = [];
+  for (let r = 1; r < R - 1; r++) {
+    for (let c = 0; c < C; c++) {
+      if (!occ.has(`${r},${c}`)) cands.push({ r, c });
+    }
+  }
+  if (!cands.length) return its;
+  const cell = cands[Math.floor(Math.random() * cands.length)];
+  return [...its, { ...cell, ty: 'cn' }];
 };
 
 // move one enemy one hex step toward target (greedy, avoids walls + each other)
@@ -463,8 +483,10 @@ const tick = (s, nr, nc) => {
   let sc = s.sc;
   if (!ov) sc += (bal().score.surviveBase + Math.min(combo, bal().score.comboCap)) + bonus;
 
-  // random utility items only spawn in endless (cn only in stage — tryItem gates it by mode)
-  if (!ov && !win && !isStage) its = tryItem(its, { r: finalR, c: finalC }, mv, s.mode);
+  // stage: dedicated coin-only spawner; endless: full utility pickup pool
+  if (!ov && !win) its = isStage
+    ? tryCoin(its, { r: finalR, c: finalC }, mv)
+    : tryItem(its, { r: finalR, c: finalC }, mv);
 
   // crack collapses when the player leaves it
   let newCracks = cracks;
@@ -584,7 +606,7 @@ Object.assign(window, {
     C, R, SZ, W, RH, PD, SW, SH,
     hc, hp, D, hd,
     PAT, EP, HP, rp, DL,
-    safest, tryItem, stepToward, tick,
+    safest, tryItem, tryCoin, stepToward, tick,
     ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
     initState, DEFAULT_BAL, bal,
