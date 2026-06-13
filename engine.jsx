@@ -44,7 +44,7 @@ const DEFAULT_BAL = {
   skill: { undoCost: 30, bombCost: 50, bombRadius: 2, freezeCost: 80, freezeTurns: 3,
            undoCoin: 20, bombCoin: 30, freezeCoin: 40, usesPerRun: 2 },
   score: { surviveBase: 10, comboCap: 10, gemBase: 80, gemCombo: 4, starBase: 50, starCombo: 3 },
-  item:  { spawnChance: 0.24, max: 3, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // ht = remainder
+  item:  { spawnChance: 0.24, max: 3, pCoin: 0.15, pSc: 0.45, pBm: 0.18, pTp: 0.12 }, // pCoin: stage-only; ht = remainder
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
   coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5 },
@@ -112,7 +112,7 @@ const safest = (bl, pl, walls = []) => {
   return best;
 };
 
-const tryItem = (its, pl, bl) => {
+const tryItem = (its, pl, bl, mode) => {
   if (its.length >= bal().item.max) return its;
   if (Math.random() > bal().item.spawnChance) return its;
   const occ = new Set([
@@ -130,9 +130,11 @@ const tryItem = (its, pl, bl) => {
   const cell = cands[Math.floor(Math.random() * cands.length)];
   const roll = Math.random();
   const it = bal().item;
-  const ty = roll < it.pSc ? 'sc'
-           : roll < it.pSc + it.pBm ? 'bm'
-           : roll < it.pSc + it.pBm + it.pTp ? 'tp'
+  const pCn = mode === 'stage' ? (it.pCoin || 0) : 0;
+  const ty = roll < pCn ? 'cn'
+           : roll < pCn + it.pSc ? 'sc'
+           : roll < pCn + it.pSc + it.pBm ? 'bm'
+           : roll < pCn + it.pSc + it.pBm + it.pTp ? 'tp'
            : 'ht';
   return [...its, { ...cell, ty }];
 };
@@ -347,6 +349,7 @@ const tick = (s, nr, nc) => {
   }
   // ── items / gems ──
   let bonus = 0;
+  let coinGain = 0;
   let its = s.its;
   let gems = s.gems || [];
   let ht = Math.max(0, s.ht - 1);
@@ -380,6 +383,9 @@ const tick = (s, nr, nc) => {
     } else if (itemAt.ty === 'ht') {
       ht = 5;
       evts.push({ ty: 'ht', r: nr, c: nc });
+    } else if (itemAt.ty === 'cn') {
+      coinGain = bal().coin.pickupValue;
+      evts.push({ ty: 'cn', r: nr, c: nc, val: coinGain });
     }
   }
 
@@ -457,8 +463,8 @@ const tick = (s, nr, nc) => {
   let sc = s.sc;
   if (!ov) sc += (bal().score.surviveBase + Math.min(combo, bal().score.comboCap)) + bonus;
 
-  // random utility items only spawn in endless
-  if (!ov && !win && !isStage) its = tryItem(its, { r: finalR, c: finalC }, mv);
+  // random utility items only spawn in endless (cn only in stage — tryItem gates it by mode)
+  if (!ov && !win && !isStage) its = tryItem(its, { r: finalR, c: finalC }, mv, s.mode);
 
   // crack collapses when the player leaves it
   let newCracks = cracks;
@@ -484,6 +490,7 @@ const tick = (s, nr, nc) => {
     lasers,
     beams,
     evts,
+    coins: (s.coins || 0) + coinGain,
   };
 };
 

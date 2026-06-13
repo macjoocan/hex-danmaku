@@ -134,3 +134,52 @@ test('stage mode: freeze smoke test', () => {
   assert.equal(plain(n).fz, 3);
   assert.equal(plain(n).sc, 500);    // score untouched
 });
+
+// ─── Coin pickup (cn) tests ────────────────────────────────────
+
+// Minimal tick-ready stage state: si:99 prevents bullet spawn; obj/stage are
+// the required stage-mode fields that tick accesses unconditionally.
+const tickStageState = (over = {}) => ({
+  ...stageState(),
+  si: 99, np: { c: [], n: '' }, np2: { c: [], n: '' },
+  cracks: [], pads: [], turrets: [], spikes: [], gems: [],
+  lasers: [], beams: [],
+  ht: 0, combo: 0, bossWaves: 0,
+  obj: { type: 'survive', surviveTurns: 999 },
+  stage: null,
+  evts: [],
+  ...over,
+});
+
+test('collecting a cn pickup adds pickupValue coins and pushes a cn event', () => {
+  const { HX } = loadEditor();
+  // player at (8,3), coin at (8,4) — that's a neighbor, so tick(s, 8, 4) moves there
+  const s = tickStageState({ its: [{ r: 8, c: 4, ty: 'cn' }] });
+  const result = HX.tick(s, 8, 4);
+  assert.equal(plain(result).coins, 105);               // 100 + 5 (pickupValue)
+  assert.ok(plain(result.evts).some(e => e.ty === 'cn'));
+  assert.equal(plain(result.its).length, 0);            // item consumed
+});
+
+test('tryItem never rolls cn outside stage mode', () => {
+  // seed=1: makeRng(1) sequence starts well under spawnChance threshold,
+  // and with pCoin=1.0 + spawnChance=1.0 the roll always picks cn in stage mode.
+  const { HX, win } = loadEditor({ seed: 1 });
+  win.HXB = {
+    ...HX.DEFAULT_BAL,
+    item: { ...HX.DEFAULT_BAL.item, pCoin: 1.0, spawnChance: 1.0 },
+  };
+  try {
+    // endless: pCn = 0, so cn is never the result even with roll=0
+    const its1 = HX.tryItem([], { r: 8, c: 3 }, [], 'endless');
+    assert.equal(its1.length, 1);
+    assert.notEqual(its1[0].ty, 'cn');
+
+    // stage: pCn = 1.0, so roll < 1.0 is always true → ty === 'cn'
+    const its2 = HX.tryItem([], { r: 8, c: 3 }, [], 'stage');
+    assert.equal(its2.length, 1);
+    assert.equal(its2[0].ty, 'cn');
+  } finally {
+    delete win.HXB;
+  }
+});

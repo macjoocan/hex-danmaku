@@ -4,7 +4,7 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const HX = window.HX;
 const HXS = window.HXS;
 const {
-  PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
+  PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
@@ -389,6 +389,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
               if (it.ty === 'bm') return <BombSprite key={`i-${i}`} x={x} y={y} warn={warn} />;
               if (it.ty === 'tp') return <TpSprite key={`i-${i}`} x={x} y={y} warn={warn} />;
               if (it.ty === 'ht') return <HintSprite key={`i-${i}`} x={x} y={y} warn={warn} />;
+              if (it.ty === 'cn') return <CoinSprite key={`i-${i}`} x={x} y={y} warn={warn} />;
               return null;
             })}
 
@@ -499,6 +500,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {isStage && (g.pads || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>컨베이어</div>}
           {isStage && (g.turrets || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#94a3b8' }}></span>포대 ▲</div>}
           {isStage && (g.beams || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#0e7490' }}></span>레이저 방출기</div>}
+          {isStage && <div className="item"><span className="sw" style={{ background: '#fbbf24' }}></span>코인</div>}
           {isStage && (g.stage.type === 'boss' || (g.lasers || []).length > 0) && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>광선 ✦</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>폭탄 ✸</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#c084fc' }}></span>이동 ✦</div>}

@@ -48,6 +48,7 @@ const StarSprite = ({ x, y, warn }) => <g transform={`translate(${x},${y})`}>{dr
 const BombSprite = ({ x, y, warn }) => <g transform={`translate(${x},${y})`}>{drawArt('bomb', { warn })}</g>;
 const TpSprite   = ({ x, y, warn }) => <g transform={`translate(${x},${y})`}>{drawArt('tp',   { warn })}</g>;
 const HintSprite = ({ x, y, warn }) => <g transform={`translate(${x},${y})`}>{drawArt('hint', { warn })}</g>;
+const CoinSprite = ({ x, y, warn }) => <g transform={`translate(${x},${y})`}>{drawArt('coin', { warn })}</g>;
 
 // ─── Explosion burst ──────────────────────────────────────────
 const ExplodeSprite = ({ x, y }) => (
@@ -166,7 +167,7 @@ const BeamSprite = ({ x, y, warn }) => (
 );
 
 Object.assign(window, {
-  PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite,
+  PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,

@@ -270,6 +270,27 @@ const PORTAL = [
   '................',
 ];
 
+// Coin pickup (stage-mode currency) — gold disc with a C engraving
+const COIN_MAP = { o: '#7c4a03', X: '#fbbf24', H: '#fde68a', d: '#d97706', e: '#a16207' };
+const COIN = [
+  '.....oooooo.....',
+  '...ooXXXXXXoo...',
+  '..oXHHHHHHHHXo..',
+  '.oXHHXXXXXXXHXo.',
+  '.oXHXXXXXXXXHXo.',
+  'oXHXXXeeeeXXXHXo',
+  'oXHXXeXXXXXXXHXo',
+  'oXHXXeXXXXXXXHXo',
+  'oXHXXeXXXXXXXHXo',
+  'oXHXXXeeeeXXXHXo',
+  '.oXdXXXXXXXXdXo.',
+  '.odXXXXXXXXXXdo.',
+  '..oddXXXXXXddo..',
+  '...ooddddddoo...',
+  '.....oooooo.....',
+  '................',
+];
+
 // Required gem (collect stages) — faceted cut stone, distinct octagon silhouette vs the star
 const GEM_MAP = { o: '#854d0e', X: '#fbbf24', H: '#fffbeb', d: '#ca8a04' };
 const GEM = [
@@ -496,6 +517,7 @@ const RES = {
   explode: { kind: 'pixel', grid: EXPLODE, map: EXPLODE_MAP, px: 1.7 },
   portal:  { kind: 'pixel', grid: PORTAL,  map: PORTAL_MAP,  px: 1.7 },
   gem:     { kind: 'pixel', grid: GEM,     map: GEM_MAP,     px: 1.5, warnStroke: true },
+  coin:    { kind: 'pixel', grid: COIN,    map: COIN_MAP,    px: 1.3, warnStroke: true },
   chaser:  { kind: 'pixel', grid: CHASER,  map: CHASER_MAP,  px: 1.5 },
   bouncer: { kind: 'pixel', grid: BOUNCER, map: BOUNCER_MAP, px: 1.5 },
   lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 1.5 },
