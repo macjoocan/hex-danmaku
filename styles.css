@@ -777,6 +777,7 @@ body::before {
 }
 .sh-name { font-family: 'DotGothic16', monospace; font-size: 16px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sh-type { font-family: 'DotGothic16', monospace; font-size: 13px; white-space: nowrap; }
+.hud-coin { font-family: 'Press Start 2P', monospace; font-size: 10px; color: #fbbf24; white-space: nowrap; }
 .sh-obj { display: flex; align-items: center; gap: 10px; }
 .sh-obj-label { font-family: 'DotGothic16', monospace; font-size: 13px; color: var(--tx-2); white-space: nowrap; min-width: 64px; }
 .sh-bar { flex: 1; height: 12px; background: var(--bg-0); border: 2px solid var(--bd-1); overflow: hidden; }

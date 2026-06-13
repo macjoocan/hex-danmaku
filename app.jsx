@@ -52,13 +52,13 @@ const Cell = ({ r, c, state, onClick }) => {
   );
 };
 
-const SkillBtn3 = ({ cls, icon, name, cost, score, disabled, onClick }) => {
-  const canUse = !disabled && score >= cost;
+const SkillBtn3 = ({ cls, icon, name, cost, budget, unit, left, disabled, onClick }) => {
+  const canUse = !disabled && budget >= cost && (left === undefined || left > 0);
   return (
     <button className={`skill3 ${cls} ${canUse ? 'ready' : ''}`} disabled={!canUse} onClick={onClick}>
       <span className="ico">{icon}</span>
-      <span className="lbl">{name}</span>
-      <span className="cost">{cost}점</span>
+      <span className="lbl">{name}{left !== undefined ? ` ${left}` : ''}</span>
+      <span className="cost">{cost}{unit}</span>
     </button>
   );
 };
@@ -76,6 +76,7 @@ const StageHUD = ({ g }) => {
         </span>
         <span className="sh-name">{st.name}</span>
         <span className="sh-type" style={{ color: m.color }}>{m.icon} {m.label}</span>
+        <span className="hud-coin">🪙 {g.coins || 0}</span>
       </div>
       <div className="sh-obj">
         <span className="sh-obj-label">{o.label}</span>
@@ -102,6 +103,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   const [waveTxt, setWave] = useState('');
   const [newRec, setNewRec] = useState(false);
   const [earned, setEarned] = useState(0);
+  const [coinGain, setCoinGain] = useState(0);
   const [beams, setBeams] = useState([]);
   const fid = useRef(0);
   const gRef = useRef(g); gRef.current = g;
@@ -117,14 +119,24 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
     }
   }, [g.ov]);
 
-  // stage clear → save stars
+  // stage clear → save stars + coin reward (first-clear judged before saveStars)
   useEffect(() => {
     if (isStage && g.win && !g._test) {
       const sNum = HXS.rateStage(g);
+      const first = !HXS.loadStars()[g.stage.id];
       setEarned(sNum);
       setStars(HXS.saveStars(g.stage.id, sNum));
+      const reward = HXS.coinReward(sNum, first);
+      setCoinGain(reward);
+      HXS.saveCoins((g.coins || 0) + reward);
     }
   }, [g.win]);
+
+  // 스킬/픽업으로 변한 코인을 즉시 지갑에 반영 (사망·이탈에도 유지).
+  // !g.win 가드: 클리어 효과가 보상을 더해 저장한 값을 덮어쓰지 않기 위함.
+  useEffect(() => {
+    if (isStage && !g._test && typeof g.coins === 'number' && !g.win) HXS.saveCoins(g.coins);
+  }, [g.coins]);
 
   // visual effects from events
   useEffect(() => {
@@ -138,6 +150,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       else if (ev.ty === 'tp') addFloat('WARP!', x, y - 6, '#c084fc');
       else if (ev.ty === 'ht') addFloat('+예지', x, y - 6, '#f97316');
       else if (ev.ty === 'idel') addFloat('✕', x, y - 4, '#7a82b0');
+      else if (ev.ty === 'cn') addFloat(`+${ev.val}🪙`, x, y - 6, '#fbbf24');
     });
   }, [g.evts]);
 
@@ -441,7 +454,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
         {isStage && g.win && (
           <ClearOverlay
-            stage={g.stage} stars={earned} score={g.sc} turns={g.t}
+            stage={g.stage} stars={earned} score={g.sc} turns={g.t} coins={coinGain}
             hasNext={g.stageIdx < HXS.STAGES.length - 1}
             onNext={() => onNext(g.stageIdx + 1)}
             onRetry={onRetry} onList={onList}
@@ -473,14 +486,23 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       <div className="skills-panel">
         <div className="skills-head">
           <span className="line"></span>
-          <span className="cap">스킬 — 점수 소모</span>
+          <span className="cap">{isStage ? '스킬 — 코인 소모' : '스킬 — 점수 소모'}</span>
           <span className="line"></span>
         </div>
-        <div className="skills-row">
-          <SkillBtn3 cls="undo" icon="↶" name="뒤로가기" cost={30} score={g.sc} disabled={!g.hist || g.ov || g.win} onClick={() => setG(s => HX.doUndo(s))} />
-          <SkillBtn3 cls="bomb" icon="✸" name="폭탄" cost={50} score={g.sc} disabled={g.ov || g.win} onClick={() => setG(s => HX.doBomb(s))} />
-          <SkillBtn3 cls="frz" icon="❄" name="정지" cost={80} score={g.sc} disabled={g.ov || g.win || g.fz > 0} onClick={() => setG(s => HX.doFreeze(s))} />
-        </div>
+        {(() => {
+          const k = HX.bal().skill;
+          const lim = k.usesPerRun;
+          const leftOf = (key) => (lim > 0 && isStage) ? ((g.skillLeft && key in g.skillLeft) ? g.skillLeft[key] : lim) : undefined;
+          const budget = isStage ? (g.coins || 0) : g.sc;
+          const unit = isStage ? '🪙' : '점';
+          return (
+            <div className="skills-row">
+              <SkillBtn3 cls="undo" icon="↶" name="뒤로가기" cost={isStage ? k.undoCoin : k.undoCost} budget={budget} unit={unit} left={leftOf('undo')} disabled={!g.hist || g.ov || g.win} onClick={() => setG(s => HX.doUndo(s))} />
+              <SkillBtn3 cls="bomb" icon="✸" name="폭탄" cost={isStage ? k.bombCoin : k.bombCost} budget={budget} unit={unit} left={leftOf('bomb')} disabled={g.ov || g.win} onClick={() => setG(s => HX.doBomb(s))} />
+              <SkillBtn3 cls="frz" icon="❄" name="정지" cost={isStage ? k.freezeCoin : k.freezeCost} budget={budget} unit={unit} left={leftOf('freeze')} disabled={g.ov || g.win || g.fz > 0} onClick={() => setG(s => HX.doFreeze(s))} />
+            </div>
+          );
+        })()}
       </div>
 
       {/* Footer */}

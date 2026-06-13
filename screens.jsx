@@ -96,7 +96,7 @@ const StageSelect = ({ stars, onPick, onBack }) => {
 };
 
 // ─── Stage clear overlay ───────────────────────────────────────
-const ClearOverlay = ({ stage, stars, score, turns, hasNext, onNext, onRetry, onList }) => (
+const ClearOverlay = ({ stage, stars, score, turns, coins, hasNext, onNext, onRetry, onList }) => (
   <div className="go-overlay clear">
     <div className="go-card clear-card">
       <div className="head clear-head">STAGE CLEAR</div>
@@ -104,6 +104,7 @@ const ClearOverlay = ({ stage, stars, score, turns, hasNext, onNext, onRetry, on
       <Stars n={stars} size="lg" />
       <div className="row"><span>SCORE</span><span className="v">{String(score).padStart(5, '0')}</span></div>
       <div className="row"><span>TURN</span><span className="v">{String(turns).padStart(3, '0')}</span></div>
+      {coins > 0 && <div className="row coin"><span>코인 보상</span><span className="v">+{coins} 🪙</span></div>}
       <div className="clear-btns">
         {hasNext
           ? <button className="b-main" onClick={onNext}>다음 ▶</button>
