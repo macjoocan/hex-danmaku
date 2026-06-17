@@ -14,6 +14,7 @@ const EXPECTED_SIZE = {
   portal: [16, 16], spike: [16, 16], pad: [16, 16],
   mine: [16, 16], beam: [16, 16], explode: [16, 16],
   coin: [16, 16],
+  bombZone: [16, 16],
 };
 
 test('every pixel grid is rectangular', () => {

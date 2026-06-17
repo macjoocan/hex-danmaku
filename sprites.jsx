@@ -166,10 +166,17 @@ const BeamSprite = ({ x, y, warn }) => (
   </g>
 );
 
+// Boss bomb zone — telegraph (warn pulse) vs armed (solid lethal tile)
+const BombZoneSprite = ({ x, y, armed }) => (
+  <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }}>
+    <g className={armed ? 'mine-armed' : 'mine-pulse'}>{drawArt('bombZone', { warn: !armed })}</g>
+  </g>
+);
+
 Object.assign(window, {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
-  BeamSprite,
+  BeamSprite, BombZoneSprite,
 });

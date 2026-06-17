@@ -8,6 +8,7 @@ const {
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
+  BombZoneSprite,
   MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
 } = window;
 
@@ -388,6 +389,11 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
             {(g.beams || []).map((b, i) => { const { x, y } = hc(b.r, b.c); return <BeamSprite key={`beam-${i}`} x={x} y={y} warn={b.cd === 1} />; })}
 
+            {(g.bombs || []).map((b, i) => {
+              const { x, y } = hc(b.r, b.c);
+              return <BombZoneSprite key={`bz${i}`} x={x} y={y} armed={b.armed} />;
+            })}
+
             {g.goal && (() => { const { x, y } = hc(g.goal.r, g.goal.c); return <PortalSprite x={x} y={y} />; })()}
 
             {(g.gems || []).map((gm, i) => {
@@ -522,6 +528,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {isStage && (g.pads || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>컨베이어</div>}
           {isStage && (g.turrets || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#94a3b8' }}></span>포대 ▲</div>}
           {isStage && (g.beams || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#0e7490' }}></span>레이저 방출기</div>}
+          {isStage && (g.bombs || []).length > 0 && <div className="item"><span className="sw" style={{ background: '#dc2626' }}></span>폭탄 장판</div>}
           {isStage && <div className="item"><span className="sw" style={{ background: '#fbbf24' }}></span>코인</div>}
           {isStage && (g.stage.type === 'boss' || (g.lasers || []).length > 0) && <div className="item"><span className="sw" style={{ background: '#67e8f9' }}></span>광선 ✦</div>}
           {!isStage && <div className="item"><span className="sw" style={{ background: '#34d399' }}></span>폭탄 ✸</div>}

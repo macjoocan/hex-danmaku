@@ -505,6 +505,27 @@ const MINE = [
   '.......oo.......',
 ];
 
+// Boss bomb zone (temporary instant-death tile) — armed look; telegraph rendered via warnStroke
+const BOMBZONE_MAP = { o: '#450a0a', X: '#dc2626', H: '#fca5a5', d: '#7f1d1d', e: '#fef2f2' };
+const BOMBZONE = [
+  '................',
+  '..XX........XX..',
+  '.oXXo......oXXo.',
+  '..oXXo....oXXo..',
+  '...oXXo..oXXo...',
+  '....oXXddXXo....',
+  '.....oXHHXo.....',
+  '....oXHeeHXo....',
+  '....oXHeeHXo....',
+  '.....oXHHXo.....',
+  '....oXXddXXo....',
+  '...oXXo..oXXo...',
+  '..oXXo....oXXo..',
+  '.oXXo......oXXo.',
+  '..XX........XX..',
+  '................',
+];
+
 // ─── THE REGISTRY ──────────────────────────────────────────────────────────
 const RES = {
   player:  { kind: 'pixel', grid: HERO,    map: HERO_MAP,    px: 1.6, ox: 8, oy: 11 },
@@ -523,6 +544,7 @@ const RES = {
   lunger:  { kind: 'pixel', grid: LUNGER,  map: LUNGER_MAP,  px: 1.5 },
   pad:     { kind: 'pixel', grid: PAD,     map: PAD_MAP,     px: 1.5 },
   mine:    { kind: 'pixel', grid: MINE,    map: MINE_MAP,    px: 1.5, warnStroke: true },
+  bombZone: { kind: 'pixel', grid: BOMBZONE, map: BOMBZONE_MAP, px: 1.5, warnStroke: true },
   // crack is vector (drawn in the sprite by broken state)
   crack:   { kind: 'vector' },
   spike:   { kind: 'pixel', grid: SPIKE,   map: SPIKE_MAP,   px: 1.5 },
