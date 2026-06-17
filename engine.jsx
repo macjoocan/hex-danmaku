@@ -48,6 +48,7 @@ const DEFAULT_BAL = {
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
   coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5, spawnChance: 0.08, max: 2 },
+  boss: { bombsPerWave: 2, bombLife: 2, bombTelegraph: 1 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -292,6 +293,7 @@ const tick = (s, nr, nc) => {
   let lasers = (s.lasers || []).map(l => ({ ...l }));
   const spawnedLasers = [];
   const spawnedEnemies = [];
+  const spawnedBombs = [];
   const bossTotal = (isStage && s.stage && s.stage.bossTotal) || 0;
   const bossDone = isStage && s.obj && s.obj.type === 'boss' && bossWaves >= bossTotal;
 
@@ -331,6 +333,11 @@ const tick = (s, nr, nc) => {
       }
       if (s.np.laser) s.np.laser.forEach(c => spawnedLasers.push({ c, charge: 2 }));
       if (s.np.summon) spawnedEnemies.push({ ...s.np.summon });
+      if (s.np.bombs) s.np.bombs.forEach(cell => {
+        if (cell.r >= 0 && cell.r < R && cell.c >= 0 && cell.c < C
+          && !block.some(w => w.r === cell.r && w.c === cell.c))
+          spawnedBombs.push({ r: cell.r, c: cell.c, age: 0, armed: false });
+      });
       ln = s.np.n;
       if (isStage && s.obj && s.obj.type === 'boss') bossWaves++;
       np = s.np2;
@@ -343,6 +350,15 @@ const tick = (s, nr, nc) => {
     } else if (si <= 0) {
       si = 1; // boss waves exhausted: keep ticking, no new spawn
     }
+  }
+
+  // ── bomb zones: age up, arm after telegraph, expire after life (paused while frozen) ──
+  const bcfg = bal().boss;
+  let bombs = (s.bombs || []).map(b => ({ ...b }));
+  if (s.fz <= 0) {
+    bombs = bombs
+      .map(b => { const age = b.age + 1; return { ...b, age, armed: age >= bcfg.bombTelegraph }; })
+      .filter(b => b.age < bcfg.bombTelegraph + bcfg.bombLife);
   }
 
   // ── turret fire (static cannons, fixed cadence, independent of spawn) ──
@@ -465,11 +481,13 @@ const tick = (s, nr, nc) => {
   const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC)
     || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
-  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit;
+  const hitBomb = (s.bombs || []).some(b => b.armed && b.r === finalR && b.c === finalC);
+  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb;
 
   // merge boss-summoned adds AFTER collision — they don't act (or kill) on their spawn turn,
   // so an add materializing on the player's cell is a telegraph, not an untelegraphed death.
   if (spawnedEnemies.length) enemies = [...enemies, ...spawnedEnemies];
+  if (spawnedBombs.length) bombs = [...bombs, ...spawnedBombs];
 
   // ── win checks (stage) ──
   let win = false;
@@ -478,7 +496,7 @@ const tick = (s, nr, nc) => {
     if (ty === 'normal' && s.goal && finalR === s.goal.r && finalC === s.goal.c) win = true;
     else if (ty === 'collect' && gems.length === 0) win = true;
     else if (ty === 'survive' && (s.t + 1) >= s.obj.surviveTurns) win = true;
-    else if (ty === 'boss' && bossWaves >= bossTotal && mv.length === 0) win = true;
+    else if (ty === 'boss' && bossWaves >= bossTotal && mv.length === 0 && !bombs.some(b => b.armed)) win = true;
   }
 
   let sc = s.sc;
@@ -517,6 +535,7 @@ const tick = (s, nr, nc) => {
     beams,
     evts,
     coins: (s.coins || 0) + coinGain,
+    bombs,
   };
 };
 
@@ -602,6 +621,7 @@ const initState = () => ({
   obj: null,
   skillUses: 0,
   evts: [],
+  bombs: [],
 });
 
 // Export to window for cross-script access (text/babel scopes don't share)
