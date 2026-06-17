@@ -64,6 +64,9 @@ const BAL_FIELDS = [
   ['endless', 'diffEasy', '초급→중급 턴', 1, 60, 1],
   ['endless', 'diffNormal', '중급→고급 턴', 1, 100, 1],
   ['endless', 'diffHard', '고급→극한 턴', 1, 150, 1],
+  ['boss', 'bombsPerWave', '폭탄 개수/웨이브', 0, 6, 1],
+  ['boss', 'bombLife', '폭탄 수명(턴)', 0, 6, 1],
+  ['boss', 'bombTelegraph', '폭탄 예고(턴)', 0, 4, 1],
 ];
 
 const BalanceTab = ({ flash }) => {
@@ -198,7 +201,7 @@ const PALETTE = [
   ['start', '시작'], ['enemy:chase', '추적자'], ['enemy:bounce', '반사체'], ['enemy:lunge', '돌격수'],
 ];
 const STAGE_TYPES = ['normal', 'survive', 'collect', 'boss'];
-const BOSS_ATKS = ['rain', 'aimed', 'pincer', 'sweep', 'sweepGap', 'full', 'converge', 'alternate', 'spread', 'laser', 'spiral', 'summon', 'mark', 'drift'];
+const BOSS_ATKS = ['rain', 'aimed', 'pincer', 'sweep', 'sweepGap', 'full', 'converge', 'alternate', 'spread', 'laser', 'spiral', 'summon', 'mark', 'drift', 'bomb'];
 
 const cloneDef = (def) => JSON.parse(JSON.stringify(def));
 const blankDef = () => ({
@@ -283,6 +286,13 @@ const StageProps = ({ def, setDef }) => {
               <select value={p.type} onChange={(e) => setPhase(i, { type: e.target.value })}>
                 {BOSS_ATKS.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
+              {p.type === 'bomb' && (
+                <select value={p.mode || 'scatter'} onChange={(e) => setPhase(i, { mode: e.target.value })}>
+                  <option value="line">line</option>
+                  <option value="diag">diag</option>
+                  <option value="scatter">scatter</option>
+                </select>
+              )}
               <input className="ph-name" value={p.name || ''} onChange={(e) => setPhase(i, { name: e.target.value })} placeholder="이름" />
               <input className="ph-turns" type="number" min="1" value={p.turns || 1} onChange={(e) => setPhase(i, { turns: Number(e.target.value) })} />
               <button className="ph-del" onClick={() => delPhase(i)}>✕</button>

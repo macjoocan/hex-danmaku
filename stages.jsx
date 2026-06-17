@@ -326,14 +326,17 @@ const STAGES = [
   },
   {
     id: 19, type: 'boss', name: 'BOSS · 포식자', sub: '새로운 공격',
-    interval: 2, bossTotal: 20,
+    interval: 2, bossTotal: 28,
     phases: [
-      { type: 'spread', turns: 5, name: '확산탄' },
-      { type: 'converge', turns: 5, name: '조여오기' },
-      { type: 'mark', turns: 5, name: '각인탄' },
-      { type: 'spiral', turns: 5, name: '나선탄' },
+      { type: 'spread', turns: 4, name: '확산탄' },
+      { type: 'bomb', mode: 'line', turns: 4, name: '폭탄 직선' },
+      { type: 'converge', turns: 4, name: '조여오기' },
+      { type: 'bomb', mode: 'diag', turns: 4, name: '폭탄 대각' },
+      { type: 'mark', turns: 4, name: '각인탄' },
+      { type: 'bomb', mode: 'scatter', turns: 4, name: '폭탄 무차별' },
+      { type: 'spiral', turns: 4, name: '나선탄' },
     ],
-    tip: '확산→조임→각인(지연 폭발)→나선. 예고된 칸을 비키세요.',
+    tip: '확산→조임→각인(지연 폭발)→나선. 예고된 칸을 비키세요. · 폭탄 장판을 피하세요.',
   },
   {
     id: 20, type: 'normal', name: '광선 회랑', sub: '게이트까지',

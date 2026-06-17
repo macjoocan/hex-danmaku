@@ -43,6 +43,7 @@ const buildBalance = (patch) => {
     // All coin keys share the >=0-number invariant — iterate DEFAULT_BAL to stay drift-proof.
     Object.keys(window.HX.DEFAULT_BAL.coin).forEach(k => { b.coin[k] = Math.max(0, Number(b.coin[k]) || 0); });
   }
+  if (b.boss) Object.keys(window.HX.DEFAULT_BAL.boss).forEach(k => { b.boss[k] = Math.max(0, Number(b.boss[k]) || 0); });
   if (b.skill) {
     // Explicit list: bombRadius/freezeTurns are >=1 engine fields clamped via atLeastOne elsewhere.
     ['undoCoin', 'bombCoin', 'freezeCoin', 'usesPerRun'].forEach(k => {

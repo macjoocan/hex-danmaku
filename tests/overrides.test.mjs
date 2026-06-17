@@ -117,6 +117,14 @@ test('buildBalance clamps negative skill coin fields to 0, keeps unaffected defa
   assert.equal(b.skill.bombCoin, HX.DEFAULT_BAL.skill.bombCoin); // default kept (30)
 });
 
+test('buildBalance merges boss section and clamps negatives to 0', () => {
+  const { HXE, HX } = loadEditor();
+  const b = plain(HXE.buildBalance({ boss: { bombsPerWave: -3, bombLife: 4 } }));
+  assert.equal(b.boss.bombsPerWave, 0);
+  assert.equal(b.boss.bombLife, 4);
+  assert.equal(b.boss.bombTelegraph, 1); // unspecified key keeps default
+});
+
 test('validateStage flags a genuinely unfair stage (full-width volley)', () => {
   const { HXE } = loadEditor({ seed: 1 });
   const def = { id: 9999, type: 'survive', surviveTurns: 30, interval: 1, firstDelay: 0,
