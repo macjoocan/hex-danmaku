@@ -481,6 +481,7 @@ const tick = (s, nr, nc) => {
   const hitEnemy = enemies.some(e => e.r === finalR && e.c === finalC)
     || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
+  // collide vs s.bombs (pre-tick armed state) — matches the board the player saw when choosing this move, like spikes. NOT the aged `bombs`.
   const hitBomb = (s.bombs || []).some(b => b.armed && b.r === finalR && b.c === finalC);
   const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb;
 
