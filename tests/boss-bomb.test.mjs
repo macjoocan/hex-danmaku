@@ -60,3 +60,49 @@ test('boss win requires no armed bombs remaining', () => {
   const s2 = { ...s, bombs: [] };
   assert.equal(HX.tick(s2, 10, 0).win, true);
 });
+
+// --- Task 2: bomb pattern generator ---
+const bombPat = (HXS, mode, s) => {
+  const stage = { type: 'boss', interval: 2, bossTotal: 999, phases: [{ type: 'bomb', mode, turns: 999 }] };
+  return plain(HXS.pickPattern(stage, 0, s));
+};
+
+test('bomb pattern returns empty falling cols (no rain during bomb phase)', () => {
+  const { HX, HXS } = loadGame();
+  const p = bombPat(HXS, 'scatter', baseState(HX, { pl: { r: 8, c: 3 } }));
+  assert.deepEqual(p.c, []);
+  assert.ok(Array.isArray(p.bombs));
+});
+
+test('bomb cells never land on player cell or its 6-ring (all modes)', () => {
+  const { HX, HXS } = loadGame();
+  for (const mode of ['line', 'diag', 'scatter']) {
+    const pl = { r: 8, c: 3 };
+    const p = bombPat(HXS, mode, baseState(HX, { pl }));
+    for (const b of p.bombs)
+      assert.ok(HX.hd(b.r, b.c, pl.r, pl.c) >= 2, `${mode}: bomb at ${b.r},${b.c} within ring of player`);
+  }
+});
+
+test('bomb cell count respects bombsPerWave cap (all modes)', () => {
+  const { HX, HXS } = loadGame();
+  for (const mode of ['line', 'diag', 'scatter']) {
+    const p = bombPat(HXS, mode, baseState(HX, { pl: { r: 8, c: 3 } }));
+    assert.ok(p.bombs.length <= HX.bal().boss.bombsPerWave, `${mode}: ${p.bombs.length} > cap`);
+  }
+});
+
+test('bomb cells avoid occupied cells (walls)', () => {
+  const { HX, HXS } = loadGame();
+  const walls = [];
+  for (let r = 0; r < HX.R; r++) for (let c = 0; c < HX.C; c++) if (!(r === 2 && c === 6)) walls.push({ r, c });
+  const p = bombPat(HXS, 'scatter', baseState(HX, { pl: { r: 10, c: 0 }, walls }));
+  for (const b of p.bombs) assert.ok(b.r === 2 && b.c === 6, `bomb on occupied cell ${b.r},${b.c}`);
+});
+
+test('bomb phase honors per-phase count override', () => {
+  const { HX, HXS } = loadGame();
+  const stage = { type: 'boss', interval: 2, bossTotal: 999, phases: [{ type: 'bomb', mode: 'scatter', count: 1, turns: 999 }] };
+  const p = plain(HXS.pickPattern(stage, 0, baseState(HX, { pl: { r: 8, c: 3 } })));
+  assert.ok(p.bombs.length <= 1);
+});

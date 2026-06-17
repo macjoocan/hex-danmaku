@@ -2,7 +2,7 @@
  * Exposes window.HXS. Depends on window.HX (engine).
  */
 
-const { C, R, PAT, D } = window.HX;
+const { C, R, PAT, D, hd } = window.HX;
 
 const shuffle = (a) => {
   const x = a.slice();
@@ -96,6 +96,38 @@ const bossAtk = (atk, s) => {
       if (w % 2 === 1) return { n: atk.name || '소환', c: [clampC(s.pl.c)] };
       const left = (w % 4) === 0;
       return { n: atk.name || '소환', c: [], summon: { r: 1, c: left ? 0 : C - 1, kind: 'bounce', dir: left ? 1 : 0 } };
+    }
+    case 'bomb': {
+      const cfg = window.HX.bal().boss;
+      const count = atk.count != null ? atk.count : cfg.bombsPerWave;
+      const pr = s.pl.r, pc = s.pl.c;
+      // occupied: walls/turrets/spikes/cracks/pads/gems/existing bombs + player (a bomb stuck on a blocker is uncollectable / pointless)
+      const occ = new Set([
+        ...(s.walls || []), ...(s.turrets || []), ...(s.spikes || []), ...(s.cracks || []),
+        ...(s.pads || []), ...(s.gems || []), ...(s.bombs || []),
+      ].map(o => `${o.r},${o.c}`));
+      occ.add(`${pr},${pc}`);
+      // candidate: hex-dist >= 2 from player, not occupied, row >= 1 (row 0 reserved for the falling-bullet lane)
+      const free = (r, c) => r >= 1 && r < R && c >= 0 && c < C
+        && hd(r, c, pr, pc) >= 2 && !occ.has(`${r},${c}`);
+      let cells = [];
+      if (atk.mode === 'line') {
+        // a horizontal bar in a row 2+ rows from the player
+        const rows = Array.from({ length: R - 1 }, (_, i) => i + 1).filter(r => Math.abs(r - pr) >= 2);
+        const row = rows.length ? rows[Math.floor(Math.random() * rows.length)] : Math.max(1, pr - 2);
+        cells = allCols.map(c => ({ r: row, c })).filter(p => free(p.r, p.c));
+      } else if (atk.mode === 'diag') {
+        // a diagonal staircase from a random start column
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const start = Math.floor(Math.random() * C);
+        cells = Array.from({ length: R - 1 }, (_, i) => ({ r: i + 1, c: clampC(start + dir * i) }))
+          .filter(p => free(p.r, p.c));
+      } else { // scatter
+        const cand = [];
+        for (let r = 1; r < R; r++) for (let c = 0; c < C; c++) if (free(r, c)) cand.push({ r, c });
+        cells = shuffle(cand);
+      }
+      return { n: atk.name || '폭탄', c: [], bombs: cells.slice(0, count) };
     }
     default:
       return { n: '산탄', c: [1, 3, 5] };
