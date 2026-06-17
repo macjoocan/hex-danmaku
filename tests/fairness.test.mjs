@@ -94,4 +94,26 @@ for (const idx of [4, 7, 9, 11])
 for (const idx of [10, 18]) for (const seed of [3, 9, 11])
   test(`reworked boss index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 50 }));
 
+// bomb phases carry a `mode`; drive a single-mode bomb boss and assert dodgeability
+function bombSurvives(mode, { seed = 11, turns = 30 } = {}) {
+  const { HX, HXS } = loadGame({ seed });
+  const stage = { type: 'boss', interval: 2, bossTotal: 999, phases: [{ type: 'bomb', mode, turns: 999, name: mode }] };
+  let s = { ...HX.initState(), mode: 'stage', stage, stageIdx: 0, obj: { type: 'boss' }, si: 1, bombs: [] };
+  s.np = HXS.pickPattern(stage, 0, s);
+  s.np2 = HXS.pickPattern(stage, 1, { ...s, bossWaves: 1 });
+  for (let i = 0; i < turns && !s.ov && !s.win; i++) {
+    assert.ok(hasSafeMove(HX, s), `bomb/${mode} seed ${seed} turn ${s.t}: no safe move (unfair)`);
+    const n = bestNext(HX, s);
+    if (!n) break;
+    s = n;
+  }
+}
+
+// wide seed sweep — a rare unfair accumulation surfaces only on a fraction of seeds (memory lesson)
+const BOMB_SEEDS = Array.from({ length: 60 }, (_, i) => i + 1); // 1..60
+for (const mode of ['line', 'diag', 'scatter'])
+  test(`boss bomb ${mode} stays dodgeable across ${BOMB_SEEDS.length} seeds`, () => {
+    for (const seed of BOMB_SEEDS) bombSurvives(mode, { seed, turns: 30 });
+  });
+
 export { safeMoves, hasSafeMove, bestNext };
