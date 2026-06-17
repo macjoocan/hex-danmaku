@@ -12,4 +12,5 @@ Thumbs.db
 # generated sprite dumps + local reference images (not source)
 assets/extracted/
 assets/maxresdefault.jpg
+assets/sample/
 tools/.cdn-cache/
