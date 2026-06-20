@@ -581,7 +581,11 @@ function App() {
   const [curRegion, setCurRegion] = useState(0);
   const [coins, setCoins] = useState(() => HXS.loadCoins());
 
-  const startStage = useCallback((idx) => { setG(HXS.initStage(idx)); setScreen('play'); setRunId(n => n + 1); }, []);
+  const startStage = useCallback((idx) => {
+    const ri = HXS.REGIONS.findIndex(r => idx >= r.from && idx <= r.to);
+    if (ri >= 0) setCurRegion(ri);
+    setG(HXS.initStage(idx)); setScreen('play'); setRunId(n => n + 1);
+  }, []);
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); }, []);
