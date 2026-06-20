@@ -390,6 +390,24 @@ const STAGES = [
   },
 ];
 
+// ─── Regions (world grouping; builtin stages only) ─────────────
+// 각 지역은 보스(STAGES[to])로 끝난다. name/color는 플레이스홀더(추후 리소스 정리 때 교체).
+const REGIONS = [
+  { id: 1, name: '여명의 평원', color: '#5eead4', from: 0,  to: 5  },
+  { id: 2, name: '강철 전선',   color: '#fbbf24', from: 6,  to: 10 },
+  { id: 3, name: '군주의 성채', color: '#c084fc', from: 11, to: 14 },
+  { id: 4, name: '포식의 둥지', color: '#34d399', from: 15, to: 18 },
+  { id: 5, name: '심연',        color: '#fb7185', from: 19, to: 23 },
+];
+const regionStars = (region, stars) => {
+  let s = 0;
+  for (let i = region.from; i <= region.to; i++) s += (stars[STAGES[i].id] || 0);
+  return s;
+};
+const regionMax = (region) => (region.to - region.from + 1) * 3;
+const regionCleared = (region, stars) => (stars[STAGES[region.to].id] || 0) > 0; // 보스 클리어 = 지역 클리어
+const regionUnlocked = (ri, stars) => ri === 0 || regionCleared(REGIONS[ri - 1], stars);
+
 // ─── initStage ─────────────────────────────────────────────────
 const objFor = (def) => {
   if (def.type === 'survive') return { type: 'survive', surviveTurns: def.surviveTurns };
@@ -505,6 +523,7 @@ Object.assign(window, {
     STAGES,
     pickPattern, stageInterval, bossPhaseName, phaseFor,
     initStage, initStageDef, initStageReplay, objText, objFor,
+    REGIONS, regionStars, regionMax, regionCleared, regionUnlocked,
     loadStars, saveStars, isUnlocked, rateStage,
     loadCoins, saveCoins, coinReward,
     TYPE_META,
