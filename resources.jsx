@@ -593,7 +593,7 @@ const BOSS_PREDATOR = [
 ];
 
 // Overlord (군주) — ornate crown, symmetrical regal face, robes
-const BOSS_OVERLORD_MAP = { o: '#1a0a14', X: '#be123c', H: '#fda4af', d: '#881337', e: '#fde047', c: '#fbbf24', g: '#f9a8d4', r: '#fecdd3', k: '#9f1239' };
+const BOSS_OVERLORD_MAP = { o: '#1a0a14', X: '#be123c', H: '#fda4af', e: '#fde047', c: '#fbbf24', g: '#f9a8d4', r: '#fecdd3' };
 const BOSS_OVERLORD = [
   '.....o.oooooo.o.........',
   '.....ocXXccXXco.........',

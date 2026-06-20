@@ -463,6 +463,12 @@ const ping = (w) => { const m = (C-1)*2; const x = ((w%m)+m)%m; return x < C ? x
 > 설계 원칙: `sweepGap`/`full`/`converge`/`spread`는 모두 **안전 칸이 반드시 존재**하고
 > 그 칸이 1턴에 1칸씩만 움직이도록 캡을 둬서, 이론상 완전 회피가 가능하다.
 
+| `bomb` | 폭탄 | 낙하탄 없음 — `mode`(line/diag/scatter)대로 즉사 장판을 던짐. 플레이어 인접 6칸 제외, `BAL.boss.bombsPerWave`개. `s.bombs`로 예고→활성→소멸 |
+
+### 보스 추가 / 아바타 스왑 레시피
+
+보스는 데이터로 정의된다. **아바타 스왑** = 보스 def의 `boss.sprite`를 다른 RES 키로 교체(미지정/미등록이면 `bossDefault` 폴백). **신규 보스 추가**: ① `STAGES`에 `{type:'boss', phases:[...], bossTotal:<turns 합>, boss:{sprite,title}}` 추가 — `bossTotal===sum(turns)` 가드 테스트가 자동 검증. ② **`tests/fairness.test.mjs` 보스 인덱스 스윕에 새 인덱스를 반드시 추가**(boss15 사건 교훈 — 스윕 누락 보스는 검증 안 됨). **모바일/소환 적 + dense 낙하 패턴 조합 금지**(추적자+sweepGap = 회피 불가 트랩). ③ RES에 24×24 아바타(`bossDefault` 형식) 추가 또는 기존 재사용. 보스 HUD는 "버티기" 게이지(생존 진행도로 차오름) + 페이즈 배너 + 상단 아바타로 자동 연출됨.
+
 ---
 
 ## 9. 기믹: 벽 · 포대 · 가시 · 광선 · 추적자 · 게이트 · 별
