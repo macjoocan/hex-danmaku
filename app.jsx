@@ -81,13 +81,25 @@ const StageHUD = ({ g }) => {
         <span className="hud-coin">🪙 {g.coins || 0}</span>
       </div>
       <div className="sh-obj">
-        <span className="sh-obj-label">{o.label}</span>
-        {o.frac != null && (
-          <div className="sh-bar">
-            <div className="sh-fill" style={{ width: `${Math.round(Math.max(0, Math.min(1, o.frac)) * 100)}%`, background: m.color }}></div>
-          </div>
+        {st.type === 'boss' ? (
+          <>
+            <span className="sh-obj-label">버티기 · {o.label}</span>
+            <div className="sh-bar boss-endure">
+              <div className="sh-fill" style={{ width: `${Math.round((1 - Math.max(0, Math.min(1, o.frac))) * 100)}%`, background: m.color }}></div>
+            </div>
+            <span className="sh-val" style={{ color: m.color }}>남은 {o.left}</span>
+          </>
+        ) : (
+          <>
+            <span className="sh-obj-label">{o.label}</span>
+            {o.frac != null && (
+              <div className="sh-bar">
+                <div className="sh-fill" style={{ width: `${Math.round(Math.max(0, Math.min(1, o.frac)) * 100)}%`, background: m.color }}></div>
+              </div>
+            )}
+            <span className="sh-val" style={{ color: m.color }}>{o.hp ? `${o.left}/${o.total}` : o.value}</span>
+          </>
         )}
-        <span className="sh-val" style={{ color: m.color }}>{o.hp ? `${o.left}/${o.total}` : o.value}</span>
       </div>
       <div className="sh-stats">
         <span>턴 <b>{g.t}</b></span>
@@ -107,9 +119,11 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
   const [earned, setEarned] = useState(0);
   const [coinGain, setCoinGain] = useState(0);
   const [beams, setBeams] = useState([]);
+  const [phaseBanner, setPhaseBanner] = useState('');
   const fid = useRef(0);
   const gRef = useRef(g); gRef.current = g;
   const pfxRef = useRef({ t: -1, r: g.pl.r, c: g.pl.c, face: 1, moved: false });
+  const phaseRef = useRef(-1);
 
   const isStage = g.mode === 'stage';
 
@@ -164,6 +178,16 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       return () => clearTimeout(t);
     }
   }, [g.ln, g.t]);
+
+  // phase banner
+  useEffect(() => {
+    if (!isStage || g.stage.type !== 'boss' || g.win || g.ov) return;
+    const ph = HXS.phaseFor(g.stage, g.bossWaves);
+    if (ph !== phaseRef.current) {
+      phaseRef.current = ph;
+      setPhaseBanner(`PHASE ${ph + 1} · ${HXS.bossPhaseName(g.stage, g.bossWaves)}`);
+    }
+  }, [g.bossWaves]);
 
   function addFloat(text, x, y, color) {
     const id = ++fid.current;
@@ -450,6 +474,8 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
         </svg>
 
         {waveTxt && <div className="wave-flash">{waveTxt}!</div>}
+
+        {phaseBanner && <div className="phase-banner" key={phaseBanner}>{phaseBanner}</div>}
 
         {g.ht > 0 && <div className="hint-badge"><span className="eye">◉</span> 예지 {g.ht}턴</div>}
 
