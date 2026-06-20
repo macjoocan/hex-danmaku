@@ -70,7 +70,8 @@ export function loadEditor({ seed = 1, initialLS = {} } = {}) {
   for (const f of ['engine.jsx', 'stages.jsx']) {
     vm.runInContext(`(function(){\n${readFileSync(join(ROOT, f), 'utf8')}\n})();`, ctx, { filename: f });
   }
-  win.HXR = { RES: { player: { kind: 'pixel', px: 2.4 }, drone: { kind: 'pixel', px: 2.3 } } };
+  vm.runInContext(`(function(){\n${readFileSync(join(ROOT, 'art-data.js'), 'utf8')}\n})();`, ctx, { filename: 'art-data.js' });
+  win.HXR = { RES: win.HXR_DATA.RES };
   vm.runInContext(`(function(){\n${readFileSync(join(ROOT, 'editor-core.jsx'), 'utf8')}\n})();`, ctx, { filename: 'editor-core.jsx' });
   return { HX: win.HX, HXS: win.HXS, HXR: win.HXR, HXE: win.HXE, win, store };
 }

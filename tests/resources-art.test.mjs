@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadRES } from '../tools/res-data.mjs';
+
+const ART_DATA = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'art-data.js');
 
 const RES = loadRES();
 const pixels = Object.entries(RES).filter(([, e]) => e.kind === 'pixel');
@@ -41,4 +46,28 @@ test('reskinned grids have spec dimensions', () => {
     assert.equal(RES[name].grid[0].length, w, `${name} width`);
     assert.equal(RES[name].grid.length, h, `${name} height`);
   }
+});
+
+test('art-data.js exposes RES with all expected entries', () => {
+  const res = loadRES();
+  for (const k of ['player', 'drone', 'star', 'gem', 'bombZone', 'bossOverlord', 'wall', 'crack'])
+    assert.ok(res[k], `RES missing ${k}`);
+});
+
+test('art-data.js is pure data — RES contains no functions', () => {
+  const res = loadRES();
+  const hasFn = (v) => typeof v === 'function'
+    || (v && typeof v === 'object' && Object.values(v).some(hasFn));
+  assert.equal(hasFn(res), false, 'RES data must contain no functions');
+});
+
+test('art-data.js contains no render logic (px/drawArt stay in resources.jsx)', () => {
+  const src = readFileSync(ART_DATA, 'utf8');
+  // Strip line and block comments before checking — art-data.js has doc comments that
+  // legitimately name drawArt/px to explain what stays in resources.jsx.
+  const code = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+    .replace(/\/\/[^\n]*/g, '');         // line comments
+  assert.ok(!/\bdrawArt\b/.test(code), 'drawArt leaked into art-data.js');
+  assert.ok(!/\bconst\s+px\s*=/.test(code), 'px renderer leaked into art-data.js');
 });
