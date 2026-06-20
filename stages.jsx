@@ -288,16 +288,15 @@ const STAGES = [
   },
   {
     id: 15, type: 'boss', name: 'FINAL · 군주', sub: '최종 결전',
-    interval: 2, bossTotal: 22,
+    interval: 2, bossTotal: 25,
     phases: [
-      { type: 'rain', n: 3, turns: 5, name: '폭우' },
-      { type: 'aimed', turns: 5, name: '조준 사격' },
-      { type: 'sweepGap', turns: 6, name: '빗장 휩쓸기' },
-      { type: 'pincer', turns: 5, name: '협공' },
+      { type: 'spread', turns: 5, name: '확산탄' },
+      { type: 'converge', turns: 5, name: '조여오기' },
+      { type: 'spiral', turns: 5, name: '나선탄' },
+      { type: 'drift', turns: 5, name: '사선 포화' },
       { type: 'full', turns: 5, name: '전탄 발사' },
     ],
-    enemies: [{ r: 1, c: 0, kind: 'chase' }],
-    tip: '5단계 풀 페이즈 + 추적자. 모든 것을 견뎌라.',
+    tip: '확산→조임→나선→사선→전탄. 5단계 escalation을 견뎌라.',
   },
 
   {

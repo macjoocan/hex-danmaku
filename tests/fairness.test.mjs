@@ -90,9 +90,28 @@ for (const idx of [4, 7, 9, 11])
   test(`reworked stage index ${idx} stays fair across ${FAIR_SEEDS.length} seeds`, () => {
     for (const seed of FAIR_SEEDS) stageSurvives(idx, { seed, turns: 30 });
   });
-// reworked bosses: ids 11,19 -> indexes 10,18 (full fight ~ bossTotal*interval turns)
+// reworked bosses: ids 11,19,15 -> indexes 10,18,14 (full fight ~ bossTotal*interval turns).
+// idx 14 (FINAL·군주) was never in the sweep and shipped unfair: a persistent chase enemy +
+// dense falling patterns (sweepGap/aimed) accumulate into an inescapable wall. Reworked to a
+// no-enemy escalation (spread→converge→spiral→drift→full); use a wide seed sweep to lock it in.
+const BOSS_SEEDS = Array.from({ length: 40 }, (_, i) => i + 1); // 1..40
 for (const idx of [10, 18]) for (const seed of [3, 9, 11])
   test(`reworked boss index ${idx} stays fair (seed ${seed})`, () => stageSurvives(idx, { seed, turns: 50 }));
+test(`reworked boss index 14 stays fair across ${BOSS_SEEDS.length} seeds`, () => {
+  for (const seed of BOSS_SEEDS) stageSurvives(14, { seed, turns: 56 });
+});
+
+// guard: every shipped boss must have bossTotal === sum(phase turns), or it ends early / repeats
+// the last phase. (This guard surfaced the idx-14 desync that led to the rework above.)
+test('every shipped boss stage has bossTotal === sum(phase turns)', () => {
+  const { HXS } = loadGame();
+  const bosses = HXS.STAGES.filter(s => s.type === 'boss');
+  assert.ok(bosses.length > 0, 'expected at least one boss stage');
+  for (const b of bosses) {
+    const sum = b.phases.reduce((a, p) => a + p.turns, 0);
+    assert.equal(b.bossTotal, sum, `${b.name} (id ${b.id}): bossTotal ${b.bossTotal} != sum(turns) ${sum}`);
+  }
+});
 
 // bomb phases carry a `mode`; drive a single-mode bomb boss and assert dodgeability
 function bombSurvives(mode, { seed = 11, turns = 30 } = {}) {
