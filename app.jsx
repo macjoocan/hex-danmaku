@@ -10,7 +10,7 @@ const {
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
   BombZoneSprite,
   BossAvatarSprite,
-  MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
+  MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
 } = window;
 
 // ─── Hex cell ─────────────────────────────────────────────────
@@ -573,16 +573,20 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
 // ═══ App (screen orchestration) ═══════════════════════════════
 function App() {
-  const [screen, setScreen] = useState('menu');   // menu | select | play
+  const [screen, setScreen] = useState('menu');   // menu | regions | select | editor | play
   const [g, setG] = useState(null);
   const [stars, setStars] = useState(() => HXS.loadStars());
   const [hi, setHi] = useState(() => { try { return Number(localStorage.getItem('hex_hi') || 0); } catch { return 0; } });
   const [runId, setRunId] = useState(0);
+  const [curRegion, setCurRegion] = useState(0);
+  const [coins, setCoins] = useState(() => HXS.loadCoins());
 
   const startStage = useCallback((idx) => { setG(HXS.initStage(idx)); setScreen('play'); setRunId(n => n + 1); }, []);
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); }, []);
+  const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); }, []);
+  const enterRegion = useCallback((ri) => { setCurRegion(ri); setStars(HXS.loadStars()); setScreen('select'); }, []);
   const toEditor = useCallback(() => { setG(null); setScreen('editor'); }, []);
   const testPlay = useCallback((def) => { setG({ ...HXS.initStageDef(def, def.stageIdx ?? 0), _test: true }); setScreen('play'); setRunId(n => n + 1); }, []);
   const retry = useCallback(() => {
@@ -595,10 +599,13 @@ function App() {
   const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
 
   if (screen === 'menu') {
-    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toSelect} onEndless={startEndless} onEditor={toEditor} />;
+    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} />;
+  }
+  if (screen === 'regions') {
+    return <RegionMap stars={stars} coins={coins} onPick={enterRegion} onBack={toMenu} />;
   }
   if (screen === 'select') {
-    return <StageSelect stars={stars} onPick={startStage} onBack={toMenu} />;
+    return <StageSelect stars={stars} region={HXS.REGIONS[curRegion]} onPick={startStage} onBack={toRegions} />;
   }
   if (screen === 'editor') {
     return <EditorScreen onExit={toMenu} onTestPlay={testPlay} />;

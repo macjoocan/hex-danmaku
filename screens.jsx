@@ -56,22 +56,63 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor }) 
   </div>
 );
 
-// ─── Stage select ──────────────────────────────────────────────
-const StageSelect = ({ stars, onPick, onBack }) => {
-  const { STAGES, isUnlocked, TYPE_META } = window.HXS;
+// ─── Region map (world select) ─────────────────────────────────
+const RegionMap = ({ stars, coins, onPick, onBack }) => {
+  const { REGIONS, STAGES, regionUnlocked, regionCleared, regionStars, regionMax } = window.HXS;
+  const total = Object.values(stars).reduce((a, b) => a + b, 0);
   return (
     <div className="screen select">
       <div className="select-bar">
         <button className="back-btn" onClick={onBack}>← 메뉴</button>
-        <span className="select-title">스테이지 선택</span>
-        <span className="select-prog">
-          ★ {Object.values(stars).reduce((a, b) => a + b, 0)}/{STAGES.length * 3}
-        </span>
+        <span className="select-title">지역 선택</span>
+        <span className="select-prog">🪙 {coins} · ★ {total}</span>
+      </div>
+      <div className="region-list">
+        {REGIONS.map((r, ri) => {
+          const open = regionUnlocked(ri, stars);
+          const cleared = regionCleared(r, stars);
+          const got = regionStars(r, stars), max = regionMax(r);
+          const prevBoss = ri > 0 ? STAGES[REGIONS[ri - 1].to].name : '';
+          return (
+            <button
+              key={r.id}
+              className={`region-card ${open ? '' : 'locked'} ${cleared ? 'cleared' : ''}`}
+              disabled={!open}
+              onClick={() => open && onPick(ri)}
+              style={{ borderColor: open ? r.color : undefined }}
+            >
+              <span className="rc-id">지역 {r.id}</span>
+              <span className="rc-name" style={{ color: open ? r.color : undefined }}>{open ? r.name : '？？？'}</span>
+              {open
+                ? <span className="rc-prog">★ {got}/{max}{cleared ? ' ✓' : ''}</span>
+                : <span className="rc-lock">🔒 {prevBoss} 클리어 시 해금</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Stage select ──────────────────────────────────────────────
+const StageSelect = ({ stars, region, onPick, onBack }) => {
+  const { STAGES, isUnlocked, TYPE_META, regionStars, regionMax } = window.HXS;
+  const from = region ? region.from : 0;
+  const to = region ? region.to : STAGES.length - 1;
+  const got = region ? regionStars(region, stars) : Object.values(stars).reduce((a, b) => a + b, 0);
+  const max = region ? regionMax(region) : STAGES.length * 3;
+  return (
+    <div className="screen select">
+      <div className="select-bar">
+        <button className="back-btn" onClick={onBack}>← {region ? '지역' : '메뉴'}</button>
+        <span className="select-title">{region ? region.name : '스테이지 선택'}</span>
+        <span className="select-prog">★ {got}/{max}</span>
       </div>
       <div className="stage-grid">
-        {STAGES.map((st, i) => {
+        {STAGES.slice(from, to + 1).map((st, j) => {
+          const i = from + j;                 // global index (isUnlocked/onPick use it)
           const open = isUnlocked(i, stars);
-          const got = stars[st.id] || 0;
+          const g = stars[st.id] || 0;
           const m = TYPE_META[st.type];
           return (
             <button
@@ -84,9 +125,7 @@ const StageSelect = ({ stars, onPick, onBack }) => {
               <span className="st-ico" style={{ color: m.color }}>{m.icon}</span>
               <span className="st-name">{open ? st.name : '？？？'}</span>
               <span className="st-type" style={{ color: m.color }}>{m.label}</span>
-              {open
-                ? <Stars n={got} />
-                : <span className="st-lock">🔒</span>}
+              {open ? <Stars n={g} /> : <span className="st-lock">🔒</span>}
             </button>
           );
         })}
@@ -133,4 +172,4 @@ const FailOverlay = ({ stage, score, turns, onRetry, onList }) => (
   </div>
 );
 
-Object.assign(window, { Stars, MenuScreen, StageSelect, ClearOverlay, FailOverlay });
+Object.assign(window, { Stars, MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay });
