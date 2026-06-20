@@ -1,10 +1,12 @@
 /* ════════════════════════════════════════════════════════════════════════
- *  resources.jsx — THE ART REGISTRY.   ← swap every sprite from this one file
+ *  art-data.js — THE ART REGISTRY (pure data).   ← swap every sprite from this one file
  * ════════════════════════════════════════════════════════════════════════
  *
  *  Every visible thing in the game (player, drone, star, wall, …) is ONE named
  *  entry in the RES table below. Game logic never touches art — so you can
  *  re-skin the whole game here without opening engine.jsx / app.jsx / stages.jsx.
+ *  Pure data only (grids/maps/RES) → exposed as window.HXR_DATA. Render logic
+ *  (px/drawArt/isImage) lives in resources.jsx.
  *
  *  ── TWO KINDS OF ART ──────────────────────────────────────────────────────
  *
