@@ -46,6 +46,7 @@ const page1 = [
   `<style>\n${readFileSync(join(root, 'styles.css'), 'utf8').replace(/@import[^;]+;/g, '')}\n</style>`,
   '</head><body><div id="root"></div>',
   ...cdnUrls.map(u => `<script>\n${readFileSync(cachePath(u), 'utf8')}\n</script>`),
+  `<script>\n${readFileSync(join(root, 'art-data.js'), 'utf8')}\n</script>`,
   ...transpiled.map(c => `<script>\n${c}\n</script>`),
   '</body></html>',
 ].join('\n');
