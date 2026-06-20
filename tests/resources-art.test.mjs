@@ -15,6 +15,7 @@ const EXPECTED_SIZE = {
   mine: [16, 16], beam: [16, 16], explode: [16, 16],
   coin: [16, 16],
   bombZone: [16, 16],
+  bossDefault: [24, 24], bossGunner: [24, 24], bossPredator: [24, 24], bossOverlord: [24, 24],
 };
 
 test('every pixel grid is rectangular', () => {

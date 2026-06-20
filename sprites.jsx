@@ -173,10 +173,21 @@ const BombZoneSprite = ({ x, y, armed }) => (
   </g>
 );
 
+// Boss avatar — board-top presence; idle bob + phase-escalation glow; swap/fallback via RES
+const BossAvatarSprite = ({ x, y, sprite, phaseLevel = 0, defeated = false }) => {
+  const key = (sprite && window.HXR.RES[sprite]) ? sprite : 'bossDefault';
+  const cls = defeated ? 'boss-avatar boss-defeated' : `boss-avatar boss-bob boss-glow-${Math.min(phaseLevel, 4)}`;
+  return (
+    <g transform={`translate(${x},${y})`} style={{ pointerEvents: 'none' }} className={cls}>
+      {window.HXR.drawArt(key)}
+    </g>
+  );
+};
+
 Object.assign(window, {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
-  BeamSprite, BombZoneSprite,
+  BeamSprite, BombZoneSprite, BossAvatarSprite,
 });

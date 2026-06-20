@@ -505,6 +505,122 @@ const MINE = [
   '.......oo.......',
 ];
 
+// Boss avatars (24×24 board-top presence; swap via stage def boss.sprite, fallback bossDefault)
+const BOSS_DEFAULT_MAP = { o: '#1a1030', X: '#7c3aed', H: '#c4b5fd', d: '#4c1d95', e: '#fde047', m: '#312e81' };
+const BOSS_DEFAULT = [
+  '........oooooooo........',
+  '......ooXXXXXXXXoo......',
+  '.....oXXXHHHHHHXXXo.....',
+  '....oXXHHXXXXXXHHXXo....',
+  '....oXHHXXXXXXXXHHXo....',
+  '...oXHXXXmmmmmmXXHXo....',
+  '...oXHXmmXXXXXXmmXHXo...',
+  '...oXHXmXeeXXeeXmXHXo...',
+  '...oXHXmXeeXXeeXmXHXo...',
+  '...oXHXmmXXXXXXmmXHXo...',
+  '...oXHHXmmmmmmmmXHHXo...',
+  '....oXHHXXdddddXXHHo....',
+  '....oXXHHXdddddXHHXo....',
+  '.....oXXHHXXXXXHHXo.....',
+  '......oXXXHHHHHXXXo.....',
+  '.......oXXXddddXXo......',
+  '........oXXddddXo.......',
+  '.........oXddddo........',
+  '........odXXXXXdo.......',
+  '.......odXXo.oXXdo......',
+  '......odXXo...oXXdo.....',
+  '.....oXXo.....o.oXXo....',
+  '.....oo.........oo......',
+  '........................',
+];
+
+// Gunner (포격수) — wide cannon mounts on shoulders, angular helmet with forward horns
+const BOSS_GUNNER_MAP = { o: '#1a0a00', X: '#b45309', H: '#fde68a', d: '#78350f', e: '#fbbf24', c: '#f97316', s: '#6b7280', g: '#d1d5db' };
+const BOSS_GUNNER = [
+  '...oo..........oo.......',
+  '..oXXo........oXXo......',
+  '..oXXo..oooo..oXXo......',
+  '..occo.oXXXXo.occo......',
+  '...oo.oXHHHHXo.oo.......',
+  '.....oXHHHHHHXo.........',
+  '....oXHeXXXXeHXo........',
+  '....oXHXeeeeXHXo........',
+  '....oXHXeeeeXHXo........',
+  '....oXHeXXXXeHXo........',
+  '....oXHHXeeeXHHo........',
+  'osso.oXHHddddHXo.osso...',
+  'ogsgo.oXXHHHXXo.ogsgo...',
+  'ogsgo..odXXXdo..ogsgo...',
+  'ossoo...oXXXo...oossoo..',
+  '........oXdXo...........',
+  '........odddo...........',
+  '.........ooo............',
+  '......odXXXXXdo.........',
+  '.....odXo...oXdo........',
+  '....odXo.....oXdo.......',
+  '....oXo.......oXo.......',
+  '....oo.........oo.......',
+  '........................',
+];
+
+// Predator (포식자) — wide fanged mouth, multiple glaring eyes, hunched stalker
+const BOSS_PREDATOR_MAP = { o: '#0a1a00', X: '#16a34a', H: '#bbf7d0', d: '#14532d', e: '#fde047', f: '#ef4444', w: '#f0fdf4', t: '#fb923c' };
+const BOSS_PREDATOR = [
+  '.....oo........oo.......',
+  '....oXXo......oXXo......',
+  '...oXXXXo....oXXXXo.....',
+  '..oXHHXXXo..oXXXHHXo....',
+  '..oXHXXXXXooXXXXXHXo....',
+  '..oXHXeeXXXXXXeeXHXo....',
+  '...oXXXeeXXXXeeXXXo.....',
+  '....oXXXXXXXXXXXXo......',
+  '...oXHHXXXXXXXXHHXo.....',
+  '...oXHHXeeXXeeXHHXo.....',
+  '...oXHHXeeXXeeXHHXo.....',
+  '...oXHHXXXXXXXHHXo......',
+  '....oXXXXXttXXXXXo......',
+  '...oXXwXXXttXXXwXXo.....',
+  '...oXwwXffffffXwwXo.....',
+  '...oXwXffffffXXwXo......',
+  '....oXXfffXfffXXo.......',
+  '.....oXXXXXXXXXo........',
+  '......oXdXXXdXo.........',
+  '.......oXdddXo..........',
+  '......odXo.oXdo.........',
+  '.....odXo...oXdo........',
+  '....oXXo.....oXXo.......',
+  '........................',
+];
+
+// Overlord (군주) — ornate crown, symmetrical regal face, robes
+const BOSS_OVERLORD_MAP = { o: '#1a0a14', X: '#be123c', H: '#fda4af', d: '#881337', e: '#fde047', c: '#fbbf24', g: '#f9a8d4', r: '#fecdd3', k: '#9f1239' };
+const BOSS_OVERLORD = [
+  '.....o.oooooo.o.........',
+  '.....ocXXccXXco.........',
+  '.....ocXcXXcXco.........',
+  '......occXXcco..........',
+  '.....oXXXXXXXXXo........',
+  '....oXXHHHHHHXXXo.......',
+  '...oXHHgggggggHHXo......',
+  '...oXHgXXXXXXXgHXo......',
+  '...oXHgXeeXXeeXgXo......',
+  '...oXHgXeeXXeeXgXo......',
+  '...oXHgXXXXXXXgHXo......',
+  '...oXHHgXrrrXgHHXo......',
+  '....oXHHXrrrXHHXo.......',
+  '....oXXHHXeXHHXXo.......',
+  '.....oXXHHHHHXXo........',
+  '......oXXXcXXXo.........',
+  '.......oXXcXXo..........',
+  '......oXXXcXXXo.........',
+  '.....oXXo...oXXo........',
+  '....oXXo.....oXXo.......',
+  '...oXXo.......oXXo......',
+  '..oXXo.........oXXo.....',
+  '..oo.............oo.....',
+  '........................',
+];
+
 // Boss bomb zone (temporary instant-death tile) — armed look; telegraph rendered via warnStroke
 const BOMBZONE_MAP = { o: '#450a0a', X: '#dc2626', H: '#fca5a5', d: '#7f1d1d', e: '#fef2f2' };
 const BOMBZONE = [
@@ -552,6 +668,10 @@ const RES = {
   beam:    { kind: 'pixel', grid: BEAM,     map: BEAM_MAP,    px: 1.5 },
   // wall is vector by default (see note up top); set kind:'image' here to swap it.
   wall:    { kind: 'vector' },
+  bossDefault:  { kind: 'pixel', grid: BOSS_DEFAULT,  map: BOSS_DEFAULT_MAP,  px: 1.6 },
+  bossGunner:   { kind: 'pixel', grid: BOSS_GUNNER,   map: BOSS_GUNNER_MAP,   px: 1.6 },
+  bossPredator: { kind: 'pixel', grid: BOSS_PREDATOR, map: BOSS_PREDATOR_MAP, px: 1.6 },
+  bossOverlord: { kind: 'pixel', grid: BOSS_OVERLORD, map: BOSS_OVERLORD_MAP, px: 1.6 },
 };
 
 // ─── drawArt — turn a registry entry into SVG ──────────────────────────────
