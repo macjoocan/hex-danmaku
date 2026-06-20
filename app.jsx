@@ -9,6 +9,7 @@ const {
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
   BombZoneSprite,
+  BossAvatarSprite,
   MenuScreen, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
 } = window;
 
@@ -377,6 +378,11 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
           {cellsEls}
 
           <g style={{ pointerEvents: 'none' }}>
+            {g.stage && g.stage.type === 'boss' && (() => {
+              const b = g.stage.boss || {};
+              return <BossAvatarSprite x={SW / 2} y={HX.SZ * 1.4} sprite={b.sprite} phaseLevel={HXS.phaseFor(g.stage, g.bossWaves)} defeated={g.win} />;
+            })()}
+
             {(g.walls || []).map((w, i) => { const { x, y } = hc(w.r, w.c); return <WallSprite key={`w-${i}`} x={x} y={y} />; })}
 
             {(g.cracks || []).map((cr, i) => { const { x, y } = hc(cr.r, cr.c); return <CrackSprite key={`cr-${i}`} x={x} y={y} broken={cr.broken} />; })}

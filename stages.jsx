@@ -248,6 +248,7 @@ const STAGES = [
   },
   {
     id: 11, type: 'boss', name: 'BOSS · 포격수', sub: '공격을 견뎌라',
+    boss: { sprite: 'bossGunner', title: '포격수' },
     interval: 2, bossTotal: 22,
     phases: [
       { type: 'aimed', turns: 5, name: '조준 사격' },
@@ -288,6 +289,7 @@ const STAGES = [
   },
   {
     id: 15, type: 'boss', name: 'FINAL · 군주', sub: '최종 결전',
+    boss: { sprite: 'bossOverlord', title: '군주' },
     interval: 2, bossTotal: 25,
     phases: [
       { type: 'spread', turns: 5, name: '확산탄' },
@@ -325,6 +327,7 @@ const STAGES = [
   },
   {
     id: 19, type: 'boss', name: 'BOSS · 포식자', sub: '새로운 공격',
+    boss: { sprite: 'bossPredator', title: '포식자' },
     interval: 2, bossTotal: 28,
     phases: [
       { type: 'spread', turns: 4, name: '확산탄' },

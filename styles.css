@@ -882,6 +882,17 @@ body::before {
 .mine-pulse { animation: minePulse 0.7s ease-in-out infinite; }
 .mine-armed { animation: minePulse 0.2s ease-in-out infinite; }
 
+/* ─── Boss avatar ────────────────────────────────────────── */
+.boss-avatar { transform-box: fill-box; transform-origin: center; }
+.boss-bob { animation: bossBob 2.6s ease-in-out infinite; }
+@keyframes bossBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.boss-glow-1 { filter: drop-shadow(0 0 3px #a78bfa); }
+.boss-glow-2 { filter: drop-shadow(0 0 4px #c084fc); }
+.boss-glow-3 { filter: drop-shadow(0 0 6px #f472b6); }
+.boss-glow-4 { filter: drop-shadow(0 0 8px #fb7185); }
+.boss-defeated { animation: bossDefeat 0.8s ease-in forwards; }
+@keyframes bossDefeat { to { transform: scale(0.2) rotate(20deg); opacity: 0; } }
+
 /* ─── Editor ─────────────────────────────────────────────── */
 .mode-btn.editor .mb-ico { color: #a78bfa; }
 .screen.editor { display: flex; flex-direction: column; height: 100%; min-height: 100vh; }
