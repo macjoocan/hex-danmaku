@@ -408,6 +408,36 @@ const regionMax = (region) => (region.to - region.from + 1) * 3;
 const regionCleared = (region, stars) => (stars[STAGES[region.to].id] || 0) > 0; // 보스 클리어 = 지역 클리어
 const regionUnlocked = (ri, stars) => ri === 0 || regionCleared(REGIONS[ri - 1], stars);
 
+// ─── Achievements (per-region + global; pure checks over stars + best) ───
+// id 컨벤션: 'r{regionId}-clear|master|speed', 글로벌 'g-*'. 수치는 플레이스홀더(E에서 튜닝).
+const SPEED_TURNS = 30; // placeholder boss speed-clear threshold
+const ACHIEVEMENTS = [
+  ...REGIONS.flatMap(r => [
+    { id: `r${r.id}-clear`,  region: r.id, name: `${r.name} 돌파`, desc: '모든 스테이지 클리어',
+      check: ({ stars, region, STAGES }) => { for (let i = region.from; i <= region.to; i++) if (!(stars[STAGES[i].id] > 0)) return false; return true; } },
+    { id: `r${r.id}-master`, region: r.id, name: `${r.name} 정복`, desc: '모든 스테이지 ★3 (무스킬)',
+      check: ({ stars, region, STAGES }) => { for (let i = region.from; i <= region.to; i++) if ((stars[STAGES[i].id] || 0) !== 3) return false; return true; } },
+    { id: `r${r.id}-speed`,  region: r.id, name: `${r.name} 속공`, desc: `보스를 ${SPEED_TURNS}턴 이하로`,
+      check: ({ best, region, STAGES }) => { const b = best[STAGES[region.to].id]; return !!b && b.turns <= SPEED_TURNS; } },
+  ]),
+  { id: 'g-allclear', region: 'global', name: '세계 정복', desc: '전 지역 클리어',
+    check: ({ stars, STAGES }) => REGIONS.every(r => (stars[STAGES[r.to].id] || 0) > 0) },
+];
+const achvCtx = (achv, stars, best) => ({
+  stars, best, STAGES,
+  region: achv.region === 'global' ? null : REGIONS.find(r => r.id === achv.region),
+});
+const achvDone = (achv, stars, best) => !!achv && achv.check(achvCtx(achv, stars, best));
+const regionAchv = (regionId, stars, best) => {
+  const list = ACHIEVEMENTS.filter(a => a.region === regionId);
+  return { done: list.filter(a => achvDone(a, stars, best)).length, total: list.length };
+};
+const totalAchv = (stars, best) => {
+  const done = ACHIEVEMENTS.filter(a => achvDone(a, stars, best)).length;
+  const total = ACHIEVEMENTS.length;
+  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+};
+
 // ─── initStage ─────────────────────────────────────────────────
 const objFor = (def) => {
   if (def.type === 'survive') return { type: 'survive', surviveTurns: def.surviveTurns };
@@ -540,6 +570,7 @@ Object.assign(window, {
     pickPattern, stageInterval, bossPhaseName, phaseFor,
     initStage, initStageDef, initStageReplay, objText, objFor,
     REGIONS, regionStars, regionMax, regionCleared, regionUnlocked,
+    ACHIEVEMENTS, achvDone, regionAchv, totalAchv,
     loadStars, saveStars, loadBest, saveBest, isUnlocked, rateStage,
     loadCoins, saveCoins, coinReward,
     TYPE_META,
