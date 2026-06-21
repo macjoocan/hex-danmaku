@@ -111,7 +111,7 @@ const StageHUD = ({ g }) => {
 };
 
 // ═══ Game view (mounted only while playing) ═══════════════════
-function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList, onMenu }) {
+function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNext, onList, onMenu }) {
   const [xCells, setXC] = useState(new Set());
   const [floats, setFl] = useState([]);
   const [waveTxt, setWave] = useState('');
@@ -127,9 +127,12 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
 
   const isStage = g.mode === 'stage';
 
-  // high score (endless)
+  // high score (normal endless only — daily score goes to hex_daily, not hex_hi)
   useEffect(() => {
-    if (!isStage && g.ov && g.sc > hi) {
+    if (isStage || !g.ov) return;
+    if (g.seed != null) {                      // daily run
+      setDaily(HXS.saveDailyScore(String(g.seed), g.sc));
+    } else if (g.sc > hi) {                    // normal endless
       setHi(g.sc); setNewRec(true);
       try { localStorage.setItem('hex_hi', String(g.sc)); } catch {}
     }
@@ -343,7 +346,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
         <div className="brand">
           <span className="pip"></span>
           <span className="brand-name">HEX DANMAKU</span>
-          <span className="brand-sub">{isStage ? '스테이지' : '엔드리스'}</span>
+          <span className="brand-sub">{isStage ? '스테이지' : (g.seed != null ? '오늘의 도전' : '엔드리스')}</span>
         </div>
         <button className="exit-btn" onClick={isStage ? onList : onMenu}>
           {isStage ? '← 목록' : '← 메뉴'}
@@ -583,12 +586,26 @@ function App() {
   const [coins, setCoins] = useState(() => HXS.loadCoins());
   const [best, setBest] = useState(() => HXS.loadBest());
 
+  const dayKey = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const todayKey = () => dayKey(new Date());
+  const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); };
+  const [daily, setDaily] = useState(() => HXS.loadDaily());
+  const [streak, setStreak] = useState(() => HXS.loadStreak());
+
   const startStage = useCallback((idx) => {
     const ri = HXS.REGIONS.findIndex(r => idx >= r.from && idx <= r.to);
     if (ri >= 0) setCurRegion(ri);
     setG(HXS.initStage(idx)); setScreen('play'); setRunId(n => n + 1);
   }, []);
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
+  const startDaily = useCallback(() => {
+    const today = todayKey();
+    const st = HXS.saveStreak(HXS.bumpStreak(HXS.loadStreak(), today, yesterdayKey()));
+    setStreak(st);
+    setDaily(HXS.loadDaily());
+    setG(HX.initState(Number(today)));   // seed = YYYYMMDD; g.seed marks daily
+    setScreen('play'); setRunId(n => n + 1);
+  }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); setBest(HXS.loadBest()); }, []);
   const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); setBest(HXS.loadBest()); }, []);
@@ -598,14 +615,14 @@ function App() {
   const retry = useCallback(() => {
     // initStageReplay rebuilds a test-play run from its own def (preserving _test) and a real
     // stage from STAGES — so retrying an unsaved custom stage neither crashes nor saves stars.
-    setG(cur => (cur ? (cur.mode === 'stage' ? HXS.initStageReplay(cur) : HX.initState()) : cur));
+    setG(cur => (cur ? (cur.mode === 'stage' ? HXS.initStageReplay(cur) : HX.initState(cur.seed)) : cur));
     setRunId(n => n + 1);
   }, []);
 
   const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
 
   if (screen === 'menu') {
-    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} />;
+    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} onDaily={startDaily} dailyBest={daily.day === todayKey() ? daily.best : 0} streak={streak.streak} />;
   }
   if (screen === 'regions') {
     return <RegionMap stars={stars} coins={coins} best={best} onPick={enterRegion} onBack={toMenu} />;
@@ -622,6 +639,7 @@ function App() {
       g={g} setG={setG}
       stars={stars} setStars={setStars}
       hi={hi} setHi={setHi}
+      setDaily={setDaily}
       onRetry={retry} onNext={g && g._test ? toEditor : startStage}
       onList={g && g._test ? toEditor : toSelect}
       onMenu={g && g._test ? toEditor : toMenu}

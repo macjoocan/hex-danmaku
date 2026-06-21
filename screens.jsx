@@ -9,7 +9,7 @@ const Stars = ({ n, size = 'sm' }) => (
 );
 
 // ─── Mode-select menu ──────────────────────────────────────────
-const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor }) => (
+const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor, onDaily, dailyBest, streak }) => (
   <div className="screen menu">
     <div className="menu-logo">
       <div className="logo-pips">
@@ -39,6 +39,14 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor }) 
           <span className="mb-desc">끝없이 쏟아지는 탄막 · 최고점 도전</span>
         </span>
         <span className="mb-meta">HI {String(hi).padStart(5, '0')}</span>
+      </button>
+      <button className="mode-btn daily" onClick={onDaily}>
+        <span className="mb-ico">🔥</span>
+        <span className="mb-text">
+          <span className="mb-name">오늘의 도전</span>
+          <span className="mb-desc">매일 바뀌는 시드 · 전국 동일 보드</span>
+        </span>
+        <span className="mb-meta">오늘 {String(dailyBest).padStart(5, '0')} · 🔥{streak}</span>
       </button>
       <button className="mode-btn editor" onClick={onEditor}>
         <span className="mb-ico">✎</span>

@@ -701,6 +701,9 @@ body::before {
 .mode-btn.stage:hover { background: #0c2942; }
 .mode-btn.endless { border-color: var(--gold); }
 .mode-btn.endless:hover { background: #2a2410; }
+.mode-btn.daily { border-color: #f97316; }
+.mode-btn.daily:hover { background: #2a1a08; }
+.mode-btn.daily .mb-ico { color: #f97316; }
 .mode-btn .mb-ico {
   font-family: 'Press Start 2P', monospace;
   font-size: 26px;
