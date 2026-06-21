@@ -447,6 +447,7 @@ const objFor = (def) => {
 };
 
 const initStageDef = (def, idx = 0) => {
+  window.HX.seedRng(null);
   const base = {
     mode: 'stage', stage: def, stageIdx: idx,
     pl: def.start ? { ...def.start } : { r: R - 1, c: mid },

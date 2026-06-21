@@ -75,13 +75,24 @@ const PAT = {
 const EP = [PAT.twin, PAT.rwall, PAT.lwall, PAT.center, PAT.diag, PAT.rdiag];
 const HP = [PAT.vshape, PAT.ivshape, PAT.focus, PAT.barrage];
 
+// ─── injectable RNG (daily challenge uses a date seed; default = global Math.random) ───
+const mulberry32 = (a) => () => {
+  a |= 0; a = (a + 0x6D2B79F5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+let _rng = null;
+const seedRng = (seed) => { _rng = (seed != null) ? mulberry32(seed >>> 0) : null; };
+const rnd = () => (_rng || Math.random)();
+
 const rp = (t) => {
   const pool =
     t < 15 ? EP :
-    t < 35 ? (Math.random() < 0.30 ? HP : EP) :
-    t < 55 ? (Math.random() < 0.55 ? HP : EP) :
-             (Math.random() < 0.75 ? HP : EP);
-  return pool[Math.floor(Math.random() * pool.length)];
+    t < 35 ? (rnd() < 0.30 ? HP : EP) :
+    t < 55 ? (rnd() < 0.55 ? HP : EP) :
+             (rnd() < 0.75 ? HP : EP);
+  return pool[Math.floor(rnd() * pool.length)];
 };
 
 // difficulty label (endless)
@@ -115,7 +126,7 @@ const safest = (bl, pl, walls = []) => {
 
 const tryItem = (its, pl, bl) => {
   if (its.length >= bal().item.max) return its;
-  if (Math.random() > bal().item.spawnChance) return its;
+  if (rnd() > bal().item.spawnChance) return its;
   const occ = new Set([
     ...bl.map(b => `${b.r},${b.c}`),
     `${pl.r},${pl.c}`,
@@ -128,8 +139,8 @@ const tryItem = (its, pl, bl) => {
     }
   }
   if (!cands.length) return its;
-  const cell = cands[Math.floor(Math.random() * cands.length)];
-  const roll = Math.random();
+  const cell = cands[Math.floor(rnd() * cands.length)];
+  const roll = rnd();
   const it = bal().item;
   const ty = roll < it.pSc ? 'sc'
            : roll < it.pSc + it.pBm ? 'bm'
@@ -143,7 +154,7 @@ const tryItem = (its, pl, bl) => {
 const tryCoin = (its, pl, bl, blocked = []) => {
   const cb = bal().coin;
   if (its.filter(i => i.ty === 'cn').length >= cb.max) return its;
-  if (Math.random() > cb.spawnChance) return its;
+  if (rnd() > cb.spawnChance) return its;
   const occ = new Set([
     ...bl.map(b => `${b.r},${b.c}`),
     ...blocked.map(o => `${o.r},${o.c}`),
@@ -157,7 +168,7 @@ const tryCoin = (its, pl, bl, blocked = []) => {
     }
   }
   if (!cands.length) return its;
-  const cell = cands[Math.floor(Math.random() * cands.length)];
+  const cell = cands[Math.floor(rnd() * cands.length)];
   return [...its, { ...cell, ty: 'cn' }];
 };
 
@@ -346,7 +357,7 @@ const tick = (s, nr, nc) => {
         : rp(s.t + 1);
       si = isStage
         ? window.HXS.stageInterval(s.stage, s.t + 1)
-        : (s.t < 30 ? 2 : (Math.random() < (s.t < 50 ? 0.25 : 0.48) ? 1 : 2));
+        : (s.t < 30 ? 2 : (rnd() < (s.t < 50 ? 0.25 : 0.48) ? 1 : 2));
     } else if (si <= 0) {
       si = 1; // boss waves exhausted: keep ticking, no new spawn
     }
@@ -590,8 +601,11 @@ const doFreeze = (s) => {
 };
 
 // ─── Init (endless) ────────────────────────────────────────────
-const initState = () => ({
+const initState = (seed) => {
+  seedRng(seed);
+  return {
   mode: 'endless',
+  seed: seed != null ? seed : null,
   stage: null,
   pl: { r: R - 1, c: Math.floor(C / 2) },
   bl: [],
@@ -623,7 +637,8 @@ const initState = () => ({
   skillUses: 0,
   evts: [],
   bombs: [],
-});
+  };
+};
 
 // Export to window for cross-script access (text/babel scopes don't share)
 Object.assign(window, {
@@ -634,6 +649,6 @@ Object.assign(window, {
     safest, tryItem, tryCoin, stepToward, tick,
     ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
-    initState, DEFAULT_BAL, bal,
+    initState, seedRng, DEFAULT_BAL, bal,
   },
 });
