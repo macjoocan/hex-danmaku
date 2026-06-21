@@ -484,6 +484,22 @@ const saveStars = (id, stars) => {
   }
   return loadStars();
 };
+// ─── Per-stage best (min turns) — for speed achievements ───────
+const loadBest = () => {
+  try {
+    if (typeof localStorage === 'undefined') return {};
+    const v = JSON.parse(localStorage.getItem('hex_stage_best') || '{}');
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  } catch { return {}; }
+};
+const saveBest = (id, turns) => {
+  const all = loadBest();
+  if (!all[id] || turns < all[id].turns) {
+    all[id] = { turns };
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('hex_stage_best', JSON.stringify(all)); } catch {}
+  }
+  return loadBest();
+};
 // ─── Coin wallet (run-persistent currency; stage-mode skill payment) ───
 const loadCoins = () => {
   try {
@@ -524,7 +540,7 @@ Object.assign(window, {
     pickPattern, stageInterval, bossPhaseName, phaseFor,
     initStage, initStageDef, initStageReplay, objText, objFor,
     REGIONS, regionStars, regionMax, regionCleared, regionUnlocked,
-    loadStars, saveStars, isUnlocked, rateStage,
+    loadStars, saveStars, loadBest, saveBest, isUnlocked, rateStage,
     loadCoins, saveCoins, coinReward,
     TYPE_META,
   },

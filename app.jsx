@@ -145,6 +145,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, onRetry, onNext, onList
       const reward = HXS.coinReward(sNum, first);
       setCoinGain(reward);
       HXS.saveCoins((g.coins || 0) + reward);
+      HXS.saveBest(g.stage.id, g.t);
     }
   }, [g.win]);
 
