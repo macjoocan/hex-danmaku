@@ -581,6 +581,7 @@ function App() {
   const [runId, setRunId] = useState(0);
   const [curRegion, setCurRegion] = useState(0);
   const [coins, setCoins] = useState(() => HXS.loadCoins());
+  const [best, setBest] = useState(() => HXS.loadBest());
 
   const startStage = useCallback((idx) => {
     const ri = HXS.REGIONS.findIndex(r => idx >= r.from && idx <= r.to);
@@ -590,8 +591,8 @@ function App() {
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); }, []);
-  const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); }, []);
-  const enterRegion = useCallback((ri) => { setCurRegion(ri); setStars(HXS.loadStars()); setScreen('select'); }, []);
+  const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); setBest(HXS.loadBest()); }, []);
+  const enterRegion = useCallback((ri) => { setCurRegion(ri); setStars(HXS.loadStars()); setBest(HXS.loadBest()); setScreen('select'); }, []);
   const toEditor = useCallback(() => { setG(null); setScreen('editor'); }, []);
   const testPlay = useCallback((def) => { setG({ ...HXS.initStageDef(def, def.stageIdx ?? 0), _test: true }); setScreen('play'); setRunId(n => n + 1); }, []);
   const retry = useCallback(() => {
@@ -607,10 +608,10 @@ function App() {
     return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} />;
   }
   if (screen === 'regions') {
-    return <RegionMap stars={stars} coins={coins} onPick={enterRegion} onBack={toMenu} />;
+    return <RegionMap stars={stars} coins={coins} best={best} onPick={enterRegion} onBack={toMenu} />;
   }
   if (screen === 'select') {
-    return <StageSelect stars={stars} region={HXS.REGIONS[curRegion]} onPick={startStage} onBack={toRegions} />;
+    return <StageSelect stars={stars} best={best} region={HXS.REGIONS[curRegion]} onPick={startStage} onBack={toRegions} />;
   }
   if (screen === 'editor') {
     return <EditorScreen onExit={toMenu} onTestPlay={testPlay} />;

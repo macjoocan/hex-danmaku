@@ -973,3 +973,10 @@ body::before {
 .region-card .rc-name { flex: 1; font-size: 15px; font-weight: 700; }
 .region-card .rc-prog { font-size: 12px; color: var(--gold); white-space: nowrap; }
 .region-card .rc-lock { font-size: 11px; color: var(--tx-2); white-space: nowrap; }
+
+.achv-list { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; }
+.achv-item { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--tx-2); }
+.achv-item.done { color: var(--gold); }
+.achv-item .achv-mark { width: 14px; }
+.achv-item .achv-name { font-weight: 700; }
+.achv-item .achv-desc { color: var(--tx-2); font-size: 11px; }

@@ -57,8 +57,8 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor }) 
 );
 
 // ─── Region map (world select) ─────────────────────────────────
-const RegionMap = ({ stars, coins, onPick, onBack }) => {
-  const { REGIONS, STAGES, regionUnlocked, regionCleared, regionStars, regionMax } = window.HXS;
+const RegionMap = ({ stars, coins, best, onPick, onBack }) => {
+  const { REGIONS, STAGES, regionUnlocked, regionCleared, regionStars, regionMax, regionAchv } = window.HXS;
   const total = Object.values(stars).reduce((a, b) => a + b, 0);
   return (
     <div className="screen select">
@@ -73,6 +73,7 @@ const RegionMap = ({ stars, coins, onPick, onBack }) => {
           const cleared = regionCleared(r, stars);
           const got = regionStars(r, stars), max = regionMax(r);
           const prevBoss = ri > 0 ? STAGES[REGIONS[ri - 1].to].name : '';
+          const ach = open ? regionAchv(r.id, stars, best || {}) : null;
           return (
             <button
               key={r.id}
@@ -84,7 +85,7 @@ const RegionMap = ({ stars, coins, onPick, onBack }) => {
               <span className="rc-id">지역 {r.id}</span>
               <span className="rc-name" style={{ color: open ? r.color : undefined }}>{open ? r.name : '？？？'}</span>
               {open
-                ? <span className="rc-prog">★ {got}/{max}{cleared ? ' ✓' : ''}</span>
+                ? <span className="rc-prog">★ {got}/{max}{cleared ? ' ✓' : ''} · 업적 {ach.done}/{ach.total}</span>
                 : <span className="rc-lock">🔒 {prevBoss} 클리어 시 해금</span>}
             </button>
           );
@@ -95,7 +96,7 @@ const RegionMap = ({ stars, coins, onPick, onBack }) => {
 };
 
 // ─── Stage select ──────────────────────────────────────────────
-const StageSelect = ({ stars, region, onPick, onBack }) => {
+const StageSelect = ({ stars, best, region, onPick, onBack }) => {
   const { STAGES, isUnlocked, TYPE_META, regionStars, regionMax } = window.HXS;
   const from = region ? region.from : 0;
   const to = region ? region.to : STAGES.length - 1;
@@ -108,6 +109,20 @@ const StageSelect = ({ stars, region, onPick, onBack }) => {
         <span className="select-title">{region ? region.name : '스테이지 선택'}</span>
         <span className="select-prog">★ {got}/{max}</span>
       </div>
+      {region && (
+        <div className="achv-list">
+          {window.HXS.ACHIEVEMENTS.filter(a => a.region === region.id).map(a => {
+            const done = window.HXS.achvDone(a, stars, best || {});
+            return (
+              <div key={a.id} className={`achv-item ${done ? 'done' : ''}`}>
+                <span className="achv-mark">{done ? '✓' : '○'}</span>
+                <span className="achv-name">{a.name}</span>
+                <span className="achv-desc">{a.desc}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="stage-grid">
         {STAGES.slice(from, to + 1).map((st, j) => {
           const i = from + j;                 // global index (isUnlocked/onPick use it)
