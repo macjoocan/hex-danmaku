@@ -502,6 +502,38 @@ const objText = (s) => {
   return '';
 };
 
+// ─── Daily challenge + attendance streak (localStorage) ───
+const loadDaily = () => {
+  try {
+    if (typeof localStorage === 'undefined') return { day: '', best: 0 };
+    const v = JSON.parse(localStorage.getItem('hex_daily') || 'null');
+    return (v && typeof v === 'object' && typeof v.day === 'string') ? { day: v.day, best: v.best || 0 } : { day: '', best: 0 };
+  } catch { return { day: '', best: 0 }; }
+};
+const saveDailyScore = (day, score) => {
+  const cur = loadDaily();
+  const next = (cur.day === day) ? { day, best: Math.max(cur.best, score) } : { day, best: score };
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('hex_daily', JSON.stringify(next)); } catch {}
+  return next;
+};
+const loadStreak = () => {
+  try {
+    if (typeof localStorage === 'undefined') return { lastDay: '', streak: 0 };
+    const v = JSON.parse(localStorage.getItem('hex_streak') || 'null');
+    return (v && typeof v === 'object' && typeof v.lastDay === 'string') ? { lastDay: v.lastDay, streak: v.streak || 0 } : { lastDay: '', streak: 0 };
+  } catch { return { lastDay: '', streak: 0 }; }
+};
+const saveStreak = (obj) => {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('hex_streak', JSON.stringify(obj)); } catch {}
+  return obj;
+};
+// 순수: today/yesterday는 dayKey 문자열(인자 주입 — 테스트 결정론)
+const bumpStreak = (prev, today, yesterday) => {
+  if (prev && prev.lastDay === today) return { lastDay: today, streak: prev.streak };
+  if (prev && prev.lastDay === yesterday) return { lastDay: today, streak: (prev.streak || 0) + 1 };
+  return { lastDay: today, streak: 1 };
+};
+
 // ─── Progress (localStorage) ───────────────────────────────────
 const loadStars = () => {
   try { return JSON.parse(localStorage.getItem('hex_stage_stars') || '{}'); }
@@ -575,5 +607,6 @@ Object.assign(window, {
     loadStars, saveStars, loadBest, saveBest, isUnlocked, rateStage,
     loadCoins, saveCoins, coinReward,
     TYPE_META,
+    loadDaily, saveDailyScore, loadStreak, saveStreak, bumpStreak,
   },
 });
