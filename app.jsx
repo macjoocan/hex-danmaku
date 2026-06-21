@@ -590,7 +590,7 @@ function App() {
   }, []);
   const startEndless = useCallback(() => { setG(HX.initState()); setScreen('play'); setRunId(n => n + 1); }, []);
   const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
-  const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); }, []);
+  const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); setBest(HXS.loadBest()); }, []);
   const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); setBest(HXS.loadBest()); }, []);
   const enterRegion = useCallback((ri) => { setCurRegion(ri); setStars(HXS.loadStars()); setBest(HXS.loadBest()); setScreen('select'); }, []);
   const toEditor = useCallback(() => { setG(null); setScreen('editor'); }, []);
