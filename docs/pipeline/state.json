@@ -4,10 +4,13 @@
   "openGates": [
     "④ 2차 세트 사인오프: 완주 113런(엔드리스 수입만)·첫 구매 8런째·풀강화 +55% — 페이싱 판단 필요 (convertBase 3→4%면 완주 ~85런)",
     "④ 최종 판정 승인 대기(스테이지 트랙): #6 첫 보스 40%, 티어 곡선 평평, #19 74턴",
-    "게임성 지표 확정 — 초안 docs/balance-metrics.md (+그레이즈율·대시 사용률·완주 런 수 지표)",
-    "머지 게이트(잔여): feat/daily-challenge 브랜치 -> main 머지 여부"
+    "게임성 지표 확정 — 초안 docs/balance-metrics.md (+그레이즈율·대시 사용률·완주 런 수 지표)"
   ],
-  "loopBudget": { "name": "3↔4(액티브 2차)", "used": 0, "max": 3 },
+  "loopBudget": {
+    "name": "3↔4(액티브 2차)",
+    "used": 0,
+    "max": 3
+  },
   "blockers": [],
   "updated": "2026-08-20"
 }
