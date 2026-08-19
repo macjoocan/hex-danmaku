@@ -53,8 +53,29 @@ const DEFAULT_BAL = {
   // 초판 수치는 <추정> — endless-sim으로 검증 후 확정
   graze: { gaugePerBullet: 1, gaugeMax: 6, scoreBonus: 5 },
   dash: { cost: 3, range: 2 },
+  // 메타 성장 (2차 세트 B1·C3): 사망 시 점수→코인 전환율. <추정> — meta-econ-sim으로 확정
+  meta: { convertBase: 0.03, convertPerLv: 0.02 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
+
+// ─── 영구 업그레이드 (엔드리스 전용 · 2차 세트 B1) ─────────────
+// 전부 엔드리스에만 작용 — 스테이지 밸런스는 건드리지 않는다(① 결정).
+// 가격은 <추정> 초판 — meta-econ-sim으로 완주 런 수를 검증해 확정.
+const UPGRADES = {
+  startGauge: { name: '예열',       max: 2, cost: [200, 600],  desc: '시작 게이지 +2' },
+  grazeBonus: { name: '아슬아슬',   max: 2, cost: [250, 750],  desc: '그레이즈 점수 +5' },
+  gaugeCap:   { name: '게이지 확장', max: 2, cost: [300, 900],  desc: '게이지 상한 +1' },
+  convert:    { name: '전리품',     max: 2, cost: [400, 1200], desc: '사망 시 점수→코인 전환율 +2%p' },
+  dashCost:   { name: '경량 도약',   max: 1, cost: [800],       desc: '대시 비용 -1' },
+};
+const loadUp = () => { try { return JSON.parse(localStorage.getItem('hex_up') || '{}'); } catch { return {}; } };
+const saveUp = (u) => { try { localStorage.setItem('hex_up', JSON.stringify(u)); } catch {} return u; };
+const upLv = (s, k) => Math.min((s && s.up && s.up[k]) || 0, UPGRADES[k].max);
+// 업그레이드 반영 유효값 — tick과 UI가 같은 함수를 쓴다(드리프트 방지)
+const effDashCost = (s) => Math.max(1, bal().dash.cost - upLv(s, 'dashCost'));
+const effGaugeMax = (s) => bal().graze.gaugeMax + upLv(s, 'gaugeCap');
+const effGrazeBonus = (s) => bal().graze.scoreBonus + 5 * upLv(s, 'grazeBonus');
+const effConvertRate = (s) => bal().meta.convertBase + bal().meta.convertPerLv * upLv(s, 'convert');
 
 // ─── Patterns (column-spawn shapes) ────────────────────────────
 const PAT = {
@@ -285,9 +306,9 @@ const tick = (s, nr, nc) => {
   const isNeighbor = D(s.pl.r).some(([dr, dc]) => s.pl.r + dr === nr && s.pl.c + dc === nc);
   // dash (엔드리스 전용): 그레이즈 게이지를 소모해 2칸 도약. 경로는 검사하지 않는다(점프) —
   // 착지 칸의 충돌 판정은 일반 이동과 동일하게 아래에서 이뤄진다.
-  const dashCfg = bal().dash;
+  const dashCost = effDashCost(s);
   const isDash = !stay && !isNeighbor && s.mode !== 'stage'
-    && hd(s.pl.r, s.pl.c, nr, nc) === dashCfg.range && (s.gz || 0) >= dashCfg.cost;
+    && hd(s.pl.r, s.pl.c, nr, nc) === bal().dash.range && (s.gz || 0) >= dashCost;
   if (!stay && !isNeighbor && !isDash) return s;
   if (nr < 0 || nr >= R || nc < 0 || nc >= C) return s;
 
@@ -542,15 +563,22 @@ const tick = (s, nr, nc) => {
   // 이동 후 탄이 플레이어 인접 1칸에 있으면 '스침' — 게이지가 차고 보너스 점수.
   // 위험(탄 옆에 붙기) = 보상(대시 자원)이 액티브 루프의 핵심이다.
   let gz = s.gz || 0;
-  if (isDash) gz -= dashCfg.cost;
+  if (isDash) gz -= dashCost;
   if (!isStage && !ov) {
     const gb = bal().graze;
     const grazeN = mv.filter(b => b.fuse == null && hd(b.r, b.c, finalR, finalC) === 1).length;
     if (grazeN) {
-      gz = Math.min(gb.gaugeMax, gz + grazeN * gb.gaugePerBullet);
-      sc += grazeN * gb.scoreBonus;
+      gz = Math.min(effGaugeMax(s), gz + grazeN * gb.gaugePerBullet);
+      sc += grazeN * effGrazeBonus(s);
       evts.push({ ty: 'graze', n: grazeN });
     }
+  }
+
+  // ── 사망 시 메타 환원 (엔드리스 전용 · C3): 점수 일부를 코인으로 ──
+  let cv = 0;
+  if (!isStage && ov) {
+    cv = Math.floor(sc * effConvertRate(s));
+    if (cv > 0) evts.push({ ty: 'cv', val: cv });
   }
 
   return {
@@ -573,6 +601,7 @@ const tick = (s, nr, nc) => {
     coins: (s.coins || 0) + coinGain,
     bombs,
     gz,
+    cv,
   };
 };
 
@@ -628,8 +657,10 @@ const doFreeze = (s) => {
 // ─── Init (endless) ────────────────────────────────────────────
 const initState = (seed) => {
   seedRng(seed);
+  const up = loadUp();
   return {
   mode: 'endless',
+  up,
   seed: seed != null ? seed : null,
   stage: null,
   pl: { r: R - 1, c: Math.floor(C / 2) },
@@ -662,7 +693,8 @@ const initState = (seed) => {
   skillUses: 0,
   evts: [],
   bombs: [],
-  gz: 0,
+  gz: 2 * Math.min(up.startGauge || 0, UPGRADES.startGauge.max),
+  cv: 0,
   };
 };
 
@@ -676,5 +708,6 @@ Object.assign(window, {
     ENEMY_KINDS, pickFace, GIMMICKS,
     doUndo, doBomb, doFreeze,
     initState, seedRng, DEFAULT_BAL, bal,
+    UPGRADES, loadUp, saveUp, upLv, effDashCost, effGaugeMax, effGrazeBonus, effConvertRate,
   },
 });

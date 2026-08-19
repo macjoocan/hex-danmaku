@@ -10,7 +10,7 @@ const {
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
   BombZoneSprite,
   BossAvatarSprite,
-  MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen,
+  MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay, Stars, EditorScreen, ShopScreen,
 } = window;
 
 // ─── Hex cell ─────────────────────────────────────────────────
@@ -158,6 +158,12 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
     if (isStage && !g._test && typeof g.coins === 'number' && !g.win) HXS.saveCoins(g.coins);
   }, [g.coins]);
 
+  // 엔드리스 사망 시 메타 환원(C3): 점수 일부가 코인으로 지갑에 들어간다.
+  // g는 runId 키로 런마다 새 인스턴스라 ov 전이당 1회만 실행된다.
+  useEffect(() => {
+    if (!isStage && !g._test && g.ov && g.cv > 0) HXS.saveCoins(HXS.loadCoins() + g.cv);
+  }, [g.ov]);
+
   // visual effects from events
   useEffect(() => {
     (g.evts || []).forEach(ev => {
@@ -268,7 +274,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
       if (r >= 0 && r < ROWS && c >= 0 && c < COLS && !blockSet.has(`${r},${c}`)) set.add(`${r},${c}`);
     });
     // dash(엔드리스 전용): 게이지가 충분하면 2칸 도약 칸도 이동 후보로
-    if (g.mode !== 'stage' && (g.gz || 0) >= HX.bal().dash.cost) {
+    if (g.mode !== 'stage' && (g.gz || 0) >= HX.effDashCost(g)) {
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         if (HX.hd(r, c, g.pl.r, g.pl.c) === HX.bal().dash.range && !blockSet.has(`${r},${c}`)) set.add(`${r},${c}`);
       }
@@ -378,7 +384,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
           <div className="stat3 right">
             <span className="lbl">점수</span><span className="val">{g.sc}</span>
             <span className="sub">콤보 <span style={{ color: g.combo >= 10 ? 'var(--bullet)' : 'var(--gold)' }}>x{g.combo}</span></span>
-            <span className="sub">대시 <span style={{ color: (g.gz || 0) >= HX.bal().dash.cost ? '#34d399' : 'var(--tx-3)' }}>⚡{g.gz || 0}/{HX.bal().graze.gaugeMax}</span></span>
+            <span className="sub">대시 <span style={{ color: (g.gz || 0) >= HX.effDashCost(g) ? '#34d399' : 'var(--tx-3)' }}>⚡{g.gz || 0}/{HX.effGaugeMax(g)}</span></span>
           </div>
         </div>
       )}
@@ -521,6 +527,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               {newRec && <div className="new-record">★ NEW RECORD ★</div>}
               <div className="row"><span>SCORE</span><span className="v">{String(g.sc).padStart(5, '0')}</span></div>
               <div className="row"><span>TURN</span><span className="v">{String(g.t).padStart(3, '0')}</span></div>
+              {g.cv > 0 && <div className="row"><span>전리품</span><span className="v" style={{ color: 'var(--gold)' }}>🪙 +{g.cv}</span></div>}
               <div className="row hi"><span>HI</span><span className="v">{String(hi).padStart(5, '0')}</span></div>
               <div className="clear-btns">
                 <button className="b-main retry" onClick={onRetry}>↻ 재시작</button>
@@ -613,7 +620,16 @@ function App() {
     setG(HX.initState(Number(today)));   // seed = YYYYMMDD; g.seed marks daily
     setScreen('play'); setRunId(n => n + 1);
   }, []);
-  const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); }, []);
+  const toMenu = useCallback(() => { setG(null); setScreen('menu'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); }, []);
+  const [ups, setUps] = useState(() => HX.loadUp());
+  const toShop = useCallback(() => { setG(null); setScreen('shop'); setCoins(HXS.loadCoins()); setUps(HX.loadUp()); }, []);
+  const buyUp = useCallback((k, cost) => {
+    const wallet = HXS.loadCoins();
+    if (wallet < cost) return;
+    HXS.saveCoins(wallet - cost);
+    const next = HX.saveUp({ ...HX.loadUp(), [k]: (HX.loadUp()[k] || 0) + 1 });
+    setCoins(HXS.loadCoins()); setUps(next);
+  }, []);
   const toSelect = useCallback(() => { setG(null); setScreen('select'); setStars(HXS.loadStars()); setBest(HXS.loadBest()); }, []);
   const toRegions = useCallback(() => { setG(null); setScreen('regions'); setStars(HXS.loadStars()); setCoins(HXS.loadCoins()); setBest(HXS.loadBest()); }, []);
   const enterRegion = useCallback((ri) => { setCurRegion(ri); setStars(HXS.loadStars()); setBest(HXS.loadBest()); setScreen('select'); }, []);
@@ -629,7 +645,10 @@ function App() {
   const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
 
   if (screen === 'menu') {
-    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} onDaily={startDaily} dailyBest={daily.day === todayKey() ? daily.best : 0} streak={streak.streak} />;
+    return <MenuScreen hi={hi} totalStars={totalStars} maxStars={HXS.STAGES.length * 3} onStage={toRegions} onEndless={startEndless} onEditor={toEditor} onDaily={startDaily} onShop={toShop} coins={coins} dailyBest={daily.day === todayKey() ? daily.best : 0} streak={streak.streak} />;
+  }
+  if (screen === 'shop') {
+    return <ShopScreen coins={coins} ups={ups} onBuy={buyUp} onBack={toMenu} />;
   }
   if (screen === 'regions') {
     return <RegionMap stars={stars} coins={coins} best={best} onPick={enterRegion} onBack={toMenu} />;

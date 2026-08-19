@@ -9,7 +9,7 @@ const Stars = ({ n, size = 'sm' }) => (
 );
 
 // ─── Mode-select menu ──────────────────────────────────────────
-const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor, onDaily, dailyBest, streak }) => (
+const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor, onDaily, onShop, coins, dailyBest, streak }) => (
   <div className="screen menu">
     <div className="menu-logo">
       <div className="logo-pips">
@@ -47,6 +47,14 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor, on
           <span className="mb-desc">매일 바뀌는 시드 · 전국 동일 보드</span>
         </span>
         <span className="mb-meta">오늘 {String(dailyBest).padStart(5, '0')} · 🔥{streak}</span>
+      </button>
+      <button className="mode-btn shop" onClick={onShop}>
+        <span className="mb-ico">⚡</span>
+        <span className="mb-text">
+          <span className="mb-name">강화</span>
+          <span className="mb-desc">코인으로 영구 업그레이드 · 엔드리스 전용</span>
+        </span>
+        <span className="mb-meta">🪙 {coins}</span>
       </button>
       <button className="mode-btn editor" onClick={onEditor}>
         <span className="mb-ico">✎</span>
@@ -195,4 +203,42 @@ const FailOverlay = ({ stage, score, turns, onRetry, onList }) => (
   </div>
 );
 
-Object.assign(window, { Stars, MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay });
+// ─── 강화 상점 (엔드리스 전용 영구 업그레이드 · 2차 세트 B1) ───
+// 수치·가격은 engine.jsx의 UPGRADES 테이블이 정본 — 여기는 표시/구매만 한다.
+const ShopScreen = ({ coins, ups, onBuy, onBack }) => {
+  const UP = window.HX.UPGRADES;
+  return (
+    <div className="screen menu">
+      <div className="menu-logo" style={{ marginBottom: 12 }}>
+        <h1 className="logo-title" style={{ fontSize: 28 }}>강화</h1>
+        <div className="logo-sub">엔드리스 전용 영구 업그레이드 · 🪙 {coins}</div>
+      </div>
+      <div className="mode-list">
+        {Object.entries(UP).map(([k, u]) => {
+          const lv = Math.min(ups[k] || 0, u.max);
+          const maxed = lv >= u.max;
+          const cost = maxed ? null : u.cost[lv];
+          const can = !maxed && coins >= cost;
+          return (
+            <button key={k} className="mode-btn" disabled={!can}
+              onClick={() => can && onBuy(k, cost)}
+              style={{ opacity: maxed ? 0.75 : can ? 1 : 0.45 }}>
+              <span className="mb-ico">{maxed ? '✔' : '⚡'}</span>
+              <span className="mb-text">
+                <span className="mb-name">{u.name} <small style={{ opacity: 0.6 }}>Lv {lv}/{u.max}</small></span>
+                <span className="mb-desc">{u.desc}</span>
+              </span>
+              <span className="mb-meta">{maxed ? 'MAX' : `🪙 ${cost}`}</span>
+            </button>
+          );
+        })}
+        <button className="mode-btn" onClick={onBack}>
+          <span className="mb-ico">←</span>
+          <span className="mb-text"><span className="mb-name">메뉴로</span></span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { Stars, MenuScreen, RegionMap, StageSelect, ClearOverlay, FailOverlay, ShopScreen });
