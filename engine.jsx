@@ -49,6 +49,10 @@ const DEFAULT_BAL = {
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
   coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5, spawnChance: 0.08, max: 2 },
   boss: { bombsPerWave: 2, bombLife: 2, bombTelegraph: 1 },
+  // 액티브 기믹 (엔드리스 전용 · 기획: docs/design-active-growth-roguelike.md 1차 세트)
+  // 초판 수치는 <추정> — endless-sim으로 검증 후 확정
+  graze: { gaugePerBullet: 1, gaugeMax: 6, scoreBonus: 5 },
+  dash: { cost: 3, range: 2 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -279,7 +283,12 @@ const tick = (s, nr, nc) => {
 
   const stay = nr === s.pl.r && nc === s.pl.c;
   const isNeighbor = D(s.pl.r).some(([dr, dc]) => s.pl.r + dr === nr && s.pl.c + dc === nc);
-  if (!stay && !isNeighbor) return s;
+  // dash (엔드리스 전용): 그레이즈 게이지를 소모해 2칸 도약. 경로는 검사하지 않는다(점프) —
+  // 착지 칸의 충돌 판정은 일반 이동과 동일하게 아래에서 이뤄진다.
+  const dashCfg = bal().dash;
+  const isDash = !stay && !isNeighbor && s.mode !== 'stage'
+    && hd(s.pl.r, s.pl.c, nr, nc) === dashCfg.range && (s.gz || 0) >= dashCfg.cost;
+  if (!stay && !isNeighbor && !isDash) return s;
   if (nr < 0 || nr >= R || nc < 0 || nc >= C) return s;
 
   const walls = s.walls || [];
@@ -529,6 +538,21 @@ const tick = (s, nr, nc) => {
     if (left) newCracks = cracks.map(cr => (cr === left ? { ...cr, broken: true } : cr));
   }
 
+  // ── graze + dash 게이지 (엔드리스 전용) ──
+  // 이동 후 탄이 플레이어 인접 1칸에 있으면 '스침' — 게이지가 차고 보너스 점수.
+  // 위험(탄 옆에 붙기) = 보상(대시 자원)이 액티브 루프의 핵심이다.
+  let gz = s.gz || 0;
+  if (isDash) gz -= dashCfg.cost;
+  if (!isStage && !ov) {
+    const gb = bal().graze;
+    const grazeN = mv.filter(b => b.fuse == null && hd(b.r, b.c, finalR, finalC) === 1).length;
+    if (grazeN) {
+      gz = Math.min(gb.gaugeMax, gz + grazeN * gb.gaugePerBullet);
+      sc += grazeN * gb.scoreBonus;
+      evts.push({ ty: 'graze', n: grazeN });
+    }
+  }
+
   return {
     ...s,
     pl: { r: finalR, c: finalC },
@@ -548,6 +572,7 @@ const tick = (s, nr, nc) => {
     evts,
     coins: (s.coins || 0) + coinGain,
     bombs,
+    gz,
   };
 };
 
@@ -637,6 +662,7 @@ const initState = (seed) => {
   skillUses: 0,
   evts: [],
   bombs: [],
+  gz: 0,
   };
 };
 

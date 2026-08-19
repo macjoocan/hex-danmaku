@@ -267,8 +267,14 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
       const r = g.pl.r + dr, c = g.pl.c + dc;
       if (r >= 0 && r < ROWS && c >= 0 && c < COLS && !blockSet.has(`${r},${c}`)) set.add(`${r},${c}`);
     });
+    // dash(엔드리스 전용): 게이지가 충분하면 2칸 도약 칸도 이동 후보로
+    if (g.mode !== 'stage' && (g.gz || 0) >= HX.bal().dash.cost) {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (HX.hd(r, c, g.pl.r, g.pl.c) === HX.bal().dash.range && !blockSet.has(`${r},${c}`)) set.add(`${r},${c}`);
+      }
+    }
     return set;
-  }, [g.pl.r, g.pl.c, blockSet]);
+  }, [g.pl.r, g.pl.c, blockSet, g.mode, g.gz]);
 
   const dangerSet = useMemo(() => {
     const set = new Set();
@@ -372,6 +378,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
           <div className="stat3 right">
             <span className="lbl">점수</span><span className="val">{g.sc}</span>
             <span className="sub">콤보 <span style={{ color: g.combo >= 10 ? 'var(--bullet)' : 'var(--gold)' }}>x{g.combo}</span></span>
+            <span className="sub">대시 <span style={{ color: (g.gz || 0) >= HX.bal().dash.cost ? '#34d399' : 'var(--tx-3)' }}>⚡{g.gz || 0}/{HX.bal().graze.gaugeMax}</span></span>
           </div>
         </div>
       )}
