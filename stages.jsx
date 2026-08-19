@@ -207,17 +207,19 @@ const STAGES = [
   },
   {
     id: 6, type: 'boss', name: 'BOSS · 파수꾼', sub: '공격을 견뎌라',
-    interval: 2, bossTotal: 14,
+    // balance 2026-08-17: 보스 강화(경미) — 14→16웨이브. 이미 최난 보스(봇 54%)라 최소 폭.
+    interval: 2, bossTotal: 16,
     phases: [
-      { type: 'rain', n: 2, turns: 5, name: '산탄' },
+      { type: 'rain', n: 2, turns: 6, name: '산탄' },
       { type: 'aimed', turns: 5, name: '조준 사격' },
-      { type: 'pincer', turns: 4, name: '협공' },
+      { type: 'pincer', turns: 5, name: '협공' },
     ],
     tip: '보스의 모든 공격(HP)을 버텨내면 격파.',
   },
   {
     id: 7, type: 'normal', name: '강행', sub: '게이트까지',
-    interval: 2, pool: [P.vshape, P.ivshape, P.focus, P.diag],
+    // balance 2026-08-17: focus(5칸)→rdiag(3칸) — 티어1 스파이크 완화 (봇 클리어율 28%→목표 ≥70%)
+    interval: 2, pool: [P.vshape, P.ivshape, P.rdiag, P.diag],
     goal: { r: 0, c: mid },
     tip: '패턴이 두꺼워졌습니다.',
   },
@@ -249,15 +251,16 @@ const STAGES = [
   {
     id: 11, type: 'boss', name: 'BOSS · 포격수', sub: '공격을 견뎌라',
     boss: { sprite: 'bossGunner', title: '포격수' },
-    interval: 2, bossTotal: 22,
+    // balance 2026-08-17: 보스 강화 — sweep(2칸)→spiral(1/3 발사) + 22→26웨이브 (봇 100% 무긴장)
+    interval: 2, bossTotal: 26,
     phases: [
       { type: 'aimed', turns: 5, name: '조준 사격' },
-      { type: 'sweep', turns: 5, name: '휩쓸기' },
-      { type: 'pincer', turns: 4, name: '협공' },
+      { type: 'spiral', turns: 5, name: '나선탄' },
+      { type: 'pincer', turns: 6, name: '협공' },
       { type: 'summon', turns: 4, name: '소환' },
-      { type: 'drift', turns: 4, name: '사선 포화' },
+      { type: 'drift', turns: 6, name: '사선 포화' },
     ],
-    tip: '5단계. 조준→휩쓸기→협공→소환(반사체)→사선 포화.',
+    tip: '5단계. 조준→나선탄→협공→소환(반사체)→사선 포화.',
   },
   {
     id: 12, type: 'survive', name: '폭풍전야', sub: '20턴 생존',
@@ -271,7 +274,9 @@ const STAGES = [
   },
   {
     id: 13, type: 'collect', name: '미로의 별', sub: '별 7개',
-    interval: 2, pool: [P.diag, P.comb, P.center, P.vshape],
+    // balance 2026-08-17: comb→rdiag — 기존 풀 4개 전부 2열 포함이라 (6,2) 별의 탄막
+    // 사다리가 안 끊겨 무스킬 회수 창 없음(봇 0%). rdiag[1,3,5]로 2열 휴지기 확보.
+    interval: 2, pool: [P.diag, P.rdiag, P.center, P.vshape],
     gems: [
       { r: 9, c: 3 }, { r: 8, c: 0 }, { r: 8, c: 6 }, { r: 6, c: 2 },
       { r: 6, c: 4 }, { r: 4, c: 3 }, { r: 2, c: 3 },
@@ -290,15 +295,16 @@ const STAGES = [
   {
     id: 15, type: 'boss', name: 'FINAL · 군주', sub: '최종 결전',
     boss: { sprite: 'bossOverlord', title: '군주' },
-    interval: 2, bossTotal: 25,
+    // balance 2026-08-17: 보스 강화 — spread(중앙 펄스)→alternate(교차탄) + 25→30웨이브 (봇 100%)
+    interval: 2, bossTotal: 30,
     phases: [
-      { type: 'spread', turns: 5, name: '확산탄' },
-      { type: 'converge', turns: 5, name: '조여오기' },
-      { type: 'spiral', turns: 5, name: '나선탄' },
-      { type: 'drift', turns: 5, name: '사선 포화' },
-      { type: 'full', turns: 5, name: '전탄 발사' },
+      { type: 'alternate', turns: 6, name: '교차탄' },
+      { type: 'converge', turns: 6, name: '조여오기' },
+      { type: 'spiral', turns: 6, name: '나선탄' },
+      { type: 'drift', turns: 6, name: '사선 포화' },
+      { type: 'full', turns: 6, name: '전탄 발사' },
     ],
-    tip: '확산→조임→나선→사선→전탄. 5단계 escalation을 견뎌라.',
+    tip: '교차→조임→나선→사선→전탄. 5단계 escalation을 견뎌라.',
   },
 
   {
@@ -312,12 +318,14 @@ const STAGES = [
     id: 17, type: 'survive', name: '포대', sub: '14턴 생존',
     interval: 2, pool: [P.edges, P.rdiag, P.comb, P.single],
     surviveTurns: 14,
-    turrets: [{ r: 3, c: 1, period: 3, phase: 0 }, { r: 4, c: 5, period: 3, phase: 1 }],
+    // balance 2026-08-17: 포대 3기로 증설 — 후반 무긴장 보강 (봇 100%)
+    turrets: [{ r: 3, c: 1, period: 3, phase: 0 }, { r: 4, c: 5, period: 3, phase: 1 }, { r: 2, c: 3, period: 3, phase: 2 }],
     tip: '▲ 포대는 주기적으로 아래로 탄을 쏩니다. 발사 직전 칸이 경고돼요.',
   },
   {
     id: 18, type: 'collect', name: '가시 보고', sub: '별 6개',
-    interval: 2, pool: [P.diag, P.comb, P.center],
+    // balance 2026-08-17: comb→rdiag — #13과 동일한 2열 사다리 문제(봇 0%)
+    interval: 2, pool: [P.diag, P.rdiag, P.center],
     gems: [
       { r: 9, c: 1 }, { r: 8, c: 5 }, { r: 6, c: 3 },
       { r: 4, c: 0 }, { r: 4, c: 6 }, { r: 2, c: 3 },
@@ -328,30 +336,34 @@ const STAGES = [
   {
     id: 19, type: 'boss', name: 'BOSS · 포식자', sub: '새로운 공격',
     boss: { sprite: 'bossPredator', title: '포식자' },
-    interval: 2, bossTotal: 28,
+    // balance 2026-08-17: 보스 강화 — 무차별 폭탄 3발 + 28→32웨이브 (봇 100% 무긴장)
+    interval: 2, bossTotal: 32,
     phases: [
       { type: 'spread', turns: 4, name: '확산탄' },
       { type: 'bomb', mode: 'line', turns: 4, name: '폭탄 직선' },
       { type: 'converge', turns: 4, name: '조여오기' },
       { type: 'bomb', mode: 'diag', turns: 4, name: '폭탄 대각' },
-      { type: 'mark', turns: 4, name: '각인탄' },
-      { type: 'bomb', mode: 'scatter', turns: 4, name: '폭탄 무차별' },
-      { type: 'spiral', turns: 4, name: '나선탄' },
+      { type: 'mark', turns: 6, name: '각인탄' },
+      { type: 'bomb', mode: 'scatter', count: 3, turns: 4, name: '폭탄 무차별' },
+      { type: 'spiral', turns: 6, name: '나선탄' },
     ],
     tip: '확산→조임→각인(지연 폭발)→나선. 예고된 칸을 비키세요. · 폭탄 장판을 피하세요.',
   },
   {
     id: 20, type: 'normal', name: '광선 회랑', sub: '게이트까지',
+    // balance 2026-08-17: 중단 가시 2기 배치 — 후반 무긴장 보강 (봇 100%)
     interval: 2, pool: [P.diag, P.center, P.vshape, L([3]), L([1, 5], '쌍광선')],
     goal: { r: 0, c: 1 },
-    tip: '✦ 광선은 충전 후 세로 한 줄 전체를 관통합니다. 경고 줄을 벗어나세요.',
+    spikes: [{ r: 5, c: 2 }, { r: 5, c: 4 }],
+    tip: '✦ 광선은 충전 후 세로 한 줄 전체를 관통합니다. 경고 줄을 벗어나세요. ◆ 가시 주의.',
   },
   {
     id: 21, type: 'survive', name: '섬광 추격', sub: '16턴 생존',
     interval: 2, pool: [P.twin, P.comb, P.center, L([2], '광선'), L([4], '광선')],
     surviveTurns: 16,
-    enemies: [{ r: 1, c: 3, kind: 'chase' }],
-    tip: '광선 + 추적자. 한 자리에 머물 수 없습니다.',
+    // balance 2026-08-17: 반사체 추가 — 후반 무긴장 보강 (봇 100%)
+    enemies: [{ r: 1, c: 3, kind: 'chase' }, { r: 6, c: 6, kind: 'bounce', dir: 0 }],
+    tip: '광선 + 추적자 + 반사체. 한 자리에 머물 수 없습니다.',
   },
   {
     id: 22, type: 'collect', name: '요새', sub: '별 7개',
@@ -360,30 +372,34 @@ const STAGES = [
       { r: 9, c: 3 }, { r: 8, c: 0 }, { r: 8, c: 6 }, { r: 6, c: 2 },
       { r: 6, c: 4 }, { r: 4, c: 3 }, { r: 2, c: 3 },
     ],
-    turrets: [{ r: 5, c: 1, period: 4, phase: 0 }, { r: 5, c: 5, period: 4, phase: 2 }],
+    // balance 2026-08-17: 포대 주기 4→3 — 후반 무긴장 보강 (봇 99%)
+    turrets: [{ r: 5, c: 1, period: 3, phase: 0 }, { r: 5, c: 5, period: 3, phase: 2 }],
     walls: [{ r: 3, c: 2 }, { r: 3, c: 4 }],
     tip: '포대와 벽 사이에서 별 7개를 회수하세요.',
   },
   {
     id: 23, type: 'normal', name: '시련의 길', sub: '게이트까지',
-    interval: 2, pool: [P.focus, P.vshape, P.diag, L([3], '광선')],
+    // balance 2026-08-17: focus→rdiag + 포대 주기 3→4 — 최종 직전 과난이도 완화 (봇 30%)
+    interval: 2, pool: [P.rdiag, P.vshape, P.diag, L([3], '광선')],
     goal: { r: 0, c: mid },
     walls: [{ r: 8, c: 2 }, { r: 8, c: 4 }, { r: 4, c: 3 }],
     spikes: [{ r: 6, c: 1 }, { r: 6, c: 5 }, { r: 2, c: 2 }, { r: 2, c: 4 }],
-    turrets: [{ r: 6, c: 3, period: 3, phase: 0 }],
+    turrets: [{ r: 6, c: 3, period: 4, phase: 0 }],
     enemies: [{ r: 1, c: 0, kind: 'chase' }],
     tip: '가시·벽·포대·광선·추적자 — 모든 기믹의 집결.',
   },
   {
     id: 24, type: 'boss', name: 'TRUE FINAL · 심연', sub: '진 최종전',
-    interval: 2, bossTotal: 23,
+    // balance 2026-08-17 r2: 강화 23→27이 과함(봇 0%, 전탄 5웨이브 구간 전멸) → 27→25로 재조정.
+    // 원본(23)보다는 강화 유지: 교차탄 +1, 전탄 3→4.
+    interval: 2, bossTotal: 25,
     phases: [
       { type: 'spread', turns: 4, name: '확산탄' },
       { type: 'laser', aim: true, turns: 4, name: '추적 광선' },
       { type: 'converge', turns: 4, name: '조여오기' },
-      { type: 'alternate', turns: 4, name: '교차탄' },
+      { type: 'alternate', turns: 5, name: '교차탄' },
       { type: 'sweepGap', turns: 4, name: '빗장 휩쓸기' },
-      { type: 'full', turns: 3, name: '전탄 발사' },
+      { type: 'full', turns: 4, name: '전탄 발사' },
     ],
     enemies: [{ r: 1, c: 6, kind: 'chase' }],
     tip: '확산→광선→조임→교차→빗장→전탄. 추적자까지. 진정한 끝.',
