@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "game-dev-team": {
+      "source": { "source": "github", "repo": "macjoocan/game-dev-team-Ver3" }
+    }
+  },
+  "enabledPlugins": {
+    "game-dev-team@game-dev-team": true
+  }
+}

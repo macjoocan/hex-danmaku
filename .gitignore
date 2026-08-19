@@ -14,3 +14,9 @@ assets/extracted/
 assets/maxresdefault.jpg
 assets/sample/
 tools/.cdn-cache/
+
+# Claude agent memory (local-only for now)
+.claude/agent-memory/
+
+# game-dev-team hook audit trail (auto-generated, not source)
+docs/pipeline/audit.log
