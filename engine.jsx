@@ -48,7 +48,12 @@ const DEFAULT_BAL = {
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
   coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5, spawnChance: 0.08, max: 2 },
-  boss: { bombsPerWave: 2, bombLife: 2, bombTelegraph: 1, blast: 1 }, // blast: 폭발 반경(헥스 거리) <추정>
+  boss: {
+    bombsPerWave: 2, bombLife: 2, bombTelegraph: 1,
+    blast: 1,        // 폭탄 폭발 반경(헥스 거리) <추정>
+    blinkEvery: 3,   // N웨이브마다 보스 순간이동 (1웨이브 전 착지점 예고) <추정>
+    blinkShots: 4,   // 순간이동 직후 착지점에서 뿌리는 자유탄 수 <추정>
+  },
   // 액티브 기믹 (엔드리스 전용 · 기획: docs/design-active-growth-roguelike.md 1차 세트)
   // 초판 수치는 <추정> — endless-sim으로 검증 후 확정
   graze: { gaugePerBullet: 1, gaugeMax: 6, scoreBonus: 5 },
@@ -365,6 +370,10 @@ const tick = (s, nr, nc) => {
   // ── bullet motion + spawn ──
   let mv, fz, np = s.np, np2 = s.np2, si = s.si, ln = '';
   let waveFx = null; // 이번 턴 스폰된 웨이브 정보 (보스 발사 연출용)
+  // 보스 온그리드: 보스가 상단 셀을 실제 점유하고 N웨이브마다 순간이동(1웨이브 전 예고)
+  let bossPos = s.bossPos ? { ...s.bossPos } : null;
+  let bossNext = s.bossNext ? { ...s.bossNext } : null;
+  let blinked = false;
   let bossWaves = s.bossWaves || 0;
   let lasers = (s.lasers || []).map(l => ({ ...l }));
   const spawnedLasers = [];
@@ -431,7 +440,24 @@ const tick = (s, nr, nc) => {
         cols: s.np.cells ? s.np.cells.map(x => x.c) : (s.np.c || []),
         laser: s.np.laser || null,
       };
-      if (isStage && s.obj && s.obj.type === 'boss') bossWaves++;
+      if (isStage && s.obj && s.obj.type === 'boss') {
+        bossWaves++;
+        // 순간이동: 예고된 착지점이 있으면 이번 웨이브에 이동(+착지 사격 플래그),
+        // 없고 주기가 되면 다음 착지점을 예고한다 (텔레그래프 없는 위협 금지)
+        if (bossPos) {
+          const bc = bal().boss;
+          if (bossNext) {
+            bossPos = bossNext;
+            bossNext = null;
+            blinked = true;
+          } else if (bc.blinkEvery > 0 && bossWaves % bc.blinkEvery === 0) {
+            for (let tryN = 0; tryN < 8; tryN++) {
+              const cand = { r: Math.floor(rnd() * 3), c: Math.floor(rnd() * C) };
+              if (cand.r !== bossPos.r || cand.c !== bossPos.c) { bossNext = cand; break; }
+            }
+          }
+        }
+      }
       np = s.np2;
       np2 = isStage
         ? window.HXS.pickPattern(s.stage, s.t + 1, { ...s, bossWaves })
@@ -449,23 +475,40 @@ const tick = (s, nr, nc) => {
   let fb = (s.fb || []).map(f => ({ ...f }));
   let fbSeq = s.fbSeq || 0;
   if (s.fz <= 0) fb = fb.map(f => ({ ...f, p: f.p + f.step })).filter(f => f.p <= 1.05);
+  // 자유탄 발사 원점: 보스가 셀 위에 있으면 그 위치에서 발원 (온그리드 체감)
+  const fbOrigin = () => {
+    if (bossPos) { const bp = hc(bossPos.r, bossPos.c); return { x: bp.x, y: bp.y }; }
+    return { x: SW / 2, y: SZ * 1.4 };
+  };
+  // 스테이지 정의의 fb 필드로 자유탄 강도를 보스별 오버라이드할 수 있다 (데이터 노브)
+  const fcEff = { ...bal().freeBullets, ...((isStage && s.stage && s.stage.fb) || {}) };
+  const spawnFb = (tx, spread) => {
+    if (fb.length >= fcEff.cap) return;
+    const o = fbOrigin();
+    const sway = (rnd() - 0.5) * 2 * (spread != null ? spread : fcEff.swayPx);
+    fb.push({
+      id: ++fbSeq,
+      x0: o.x, y0: o.y,
+      cx1: tx + sway, cy1: SH * 0.33,
+      cx2: tx - sway, cy2: SH * 0.66,
+      x1: tx + (rnd() - 0.5) * 30, y1: SH + 14,
+      p: 0, step: fcEff.stepMin + rnd() * fcEff.stepVar,
+    });
+  };
   // 공정성 게이트: 안전 열이 3개 미만인 강공(sweepGap·full 등)에는 자유탄을 얹지 않는다
   // — 강공+자유탄 조합이 "회피 불가" 상황을 만들 수 있음(fairness.test로 계약).
   if (waveFx && waveFx.boss && (waveFx.cols || []).length <= C - 3) {
-    const fc = bal().freeBullets;
-    for (const c of (waveFx.cols || []).slice(0, fc.maxPerWave)) {
-      if (fb.length >= fc.cap) break;
-      const bx = SW / 2, by = SZ * 1.4;
-      const tx = hc(0, c).x;
-      const sway = (rnd() - 0.5) * 2 * fc.swayPx;
-      fb.push({
-        id: ++fbSeq,
-        x0: bx, y0: by,
-        cx1: tx + sway, cy1: SH * 0.33,
-        cx2: tx - sway, cy2: SH * 0.66,
-        x1: tx + (rnd() - 0.5) * 30, y1: SH + 14,
-        p: 0, step: fc.stepMin + rnd() * fc.stepVar,
-      });
+    const fc = fcEff;
+    // 폭탄·레이저처럼 발사 열이 없는 웨이브도 자유탄은 쏜다 (시드 랜덤 열) —
+    // 폭탄 위주 보스(#19)가 자유탄 압박 없이 무긴장이 되는 걸 방지
+    const srcCols = (waveFx.cols && waveFx.cols.length)
+      ? waveFx.cols.slice(0, fc.maxPerWave)
+      : Array.from({ length: fc.maxPerWave }, () => Math.floor(rnd() * C));
+    for (const c of srcCols) spawnFb(hc(0, c).x);
+    // 순간이동 착지 사격: 새 위치에서 부채꼴 burst ("순간이동하면서 쏜다")
+    if (blinked) {
+      const n = bal().boss.blinkShots;
+      for (let k = 0; k < n; k++) spawnFb(PD + SZ + (W * (C - 1)) * (k + 0.5) / n, 30);
     }
   }
 
@@ -607,7 +650,9 @@ const tick = (s, nr, nc) => {
   const hitBomb = (s.bombs || []).some(b => b.armed && hd(b.r, b.c, finalR, finalC) <= bal().boss.blast);
   // 자유탄 충돌: 궤적 위치가 속한 셀에 플레이어가 있으면 피격 (스폰 턴은 p=0, 보스 위치라 안전)
   const hitFree = fb.some(f => f.p > 0 && (() => { const cc = fbCell(f); return cc.r === finalR && cc.c === finalC; })());
-  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb || hitFree;
+  // 보스 몸통: 보스가 점유한 셀에 들어가면 피격
+  const hitBossBody = !!(bossPos && finalR === bossPos.r && finalC === bossPos.c);
+  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb || hitFree || hitBossBody;
 
   // merge boss-summoned adds AFTER collision — they don't act (or kill) on their spawn turn,
   // so an add materializing on the player's cell is a telegraph, not an untelegraphed death.
@@ -687,6 +732,8 @@ const tick = (s, nr, nc) => {
     cv,
     fb,
     fbSeq,
+    bossPos,
+    bossNext,
   };
 };
 

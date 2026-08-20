@@ -1092,3 +1092,18 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .fx-fly { transition: none; }
 }
+
+/* ══ 보스 온그리드: 순간이동 착지점 예고 ══ */
+.boss-next {
+  fill: rgba(248, 113, 113, 0.12);
+  stroke: #f87171;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+  animation: bossNextPulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes bossNextPulse {
+  from { opacity: 0.35; }
+  to   { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) { .boss-next { animation: none; opacity: 0.7; } }

@@ -501,11 +501,20 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
           <g style={{ pointerEvents: 'none' }}>
             {g.stage && g.stage.type === 'boss' && (() => {
               const b = g.stage.boss || {};
-              // key=bossWaves: 웨이브마다 리마운트되어 발사 애니메이션(boss-fire)이 재생된다
+              // 보스 온그리드: 아바타가 실제 점유 셀(bossPos) 위에 선다 — 탄막과 겹침 해소
+              const bp = g.bossPos ? hc(g.bossPos.r, g.bossPos.c) : { x: SW / 2, y: HX.SZ * 1.4 };
+              // key=bossWaves: 웨이브마다 리마운트되어 발사 애니메이션(boss-fire)이 재생된다.
+              // 위치도 key에 포함해 순간이동 시 이전 위치→새 위치 잔상 없이 착지한다.
               return (
-                <g key={`bf-${g.bossWaves}`} className={g.bossWaves > 0 && !g.win ? 'boss-fire' : ''}>
-                  <BossAvatarSprite x={SW / 2} y={HX.SZ * 1.4} sprite={b.sprite} phaseLevel={HXS.phaseFor(g.stage, g.bossWaves)} defeated={g.win} />
-                </g>
+                <React.Fragment key={`bf-${g.bossWaves}-${bp.x}`}>
+                  {g.bossNext && (() => {
+                    const np = hc(g.bossNext.r, g.bossNext.c);
+                    return <circle className="boss-next" cx={np.x} cy={np.y} r={HX.SZ * 0.85} />;
+                  })()}
+                  <g className={g.bossWaves > 0 && !g.win ? 'boss-fire' : ''}>
+                    <BossAvatarSprite x={bp.x} y={bp.y} sprite={b.sprite} phaseLevel={HXS.phaseFor(g.stage, g.bossWaves)} defeated={g.win} />
+                  </g>
+                </React.Fragment>
               );
             })()}
 

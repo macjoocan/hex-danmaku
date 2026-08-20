@@ -337,6 +337,8 @@ const STAGES = [
     id: 19, type: 'boss', name: 'BOSS · 포식자', sub: '새로운 공격',
     boss: { sprite: 'bossPredator', title: '포식자' },
     // balance 2026-08-17: 보스 강화 — 무차별 폭탄 3발 + 28→32웨이브 (봇 100% 무긴장)
+    // balance 2026-08-21: 자유탄 오버라이드 — 폭탄 위주라 봇 100% 잔존 → 3발·빠른 보폭 <추정>
+    fb: { maxPerWave: 3, stepMin: 0.2, stepVar: 0.24 },
     interval: 2, bossTotal: 32,
     phases: [
       { type: 'spread', turns: 4, name: '확산탄' },
@@ -484,6 +486,7 @@ const initStageDef = (def, idx = 0) => {
     gems: (def.gems || []).map(g => ({ ...g })),
     t: 0, sc: 0, coins: loadCoins(), ov: false, win: false, ln: '', its: [], fz: 0, ht: 0,
     hist: null, combo: 0, bossWaves: 0, obj: objFor(def), skillUses: 0, fb: [], fbSeq: 0,
+    bossPos: def.type === 'boss' ? { r: 1, c: mid } : null, bossNext: null,
     si: def.firstDelay != null ? def.firstDelay : 1, evts: [],
   };
   base.np = pickPattern(def, 0, base);
