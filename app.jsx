@@ -317,6 +317,32 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
     return set;
   }, [g.bl, g.fz, g.ht]);
 
+  // 1945식 활공 렌더: 각 탄이 직전 턴 어느 칸에서 왔는지 역추적 — 엔진 무변경.
+  // 이동이 결정론적이라 nextBulletPos(이전 탄) == 현재 위치 매칭으로 복원 가능하다.
+  const prevBlRef = useRef({ t: -1, bl: [] });
+  const flightFrom = useMemo(() => {
+    const prev = prevBlRef.current;
+    const usable = (prev.t === g.t - 1 && g.fz <= 0) ? [...prev.bl] : null;
+    return g.bl.map(b => {
+      if (!usable || b.fuse != null) return null;
+      // 같은 자리(홀드) 우선 소진 — 오매칭 방지
+      let idx = usable.findIndex(p => p && p.fuse == null && p.r === b.r && p.c === b.c
+        && !!p.zig === !!b.zig && !!p.slow === !!b.slow);
+      let same = idx >= 0;
+      if (idx < 0) {
+        idx = usable.findIndex(p => {
+          if (!p || p.fuse != null || !!p.zig !== !!b.zig || !!p.slow !== !!b.slow) return false;
+          const n = HX.nextBulletPos(p);
+          return !n.hold && n.r === b.r && n.c === b.c;
+        });
+      }
+      if (idx < 0) return null;
+      const p = usable[idx]; usable[idx] = null;
+      return same ? null : { r: p.r, c: p.c };
+    });
+  }, [g.bl, g.t, g.fz]);
+  useEffect(() => { prevBlRef.current = { t: g.t, bl: g.bl }; }, [g.t, g.bl]);
+
   const previewSet = useMemo(() => {
     const set = new Set();
     if (g.ht > 0 && g.fz === 0 && g.si === 1) g.np.c.forEach(c => set.add(`0,${c}`));
@@ -503,10 +529,24 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               const k = `${b.r},${b.c}`; if (xCells.has(k)) return null;
               const { x, y } = hc(b.r, b.c);
               if (b.fuse != null) return <MineSprite key={`b-${i}`} x={x} y={y} armed={b.fuse === 0} />;
-              // 변칙탄 시각 구분(텔레그래프): zig=보라 계열, slow=하늘 계열. 스폰 순간엔 pop-in.
-              const cls = [b.zig ? 'blt-zig' : b.slow ? 'blt-slow' : '', b.r === 0 ? 'spawn-pop' : ''].join(' ').trim();
+              const cls = [b.zig ? 'blt-zig' : b.slow ? 'blt-slow' : ''].join(' ').trim();
+              const from = flightFrom[i]; // 직전 턴 위치 (없으면 신규 스폰)
+              if (from) {
+                // 1945식 활공: 이전 칸 → 현재 칸으로 부드럽게 날아오고, 탄도 트레일이 잔상으로 남는다
+                const p0 = hc(from.r, from.c);
+                const vars = { '--x0': `${p0.x}px`, '--y0': `${p0.y}px`, '--x1': `${x}px`, '--y1': `${y}px` };
+                return (
+                  <React.Fragment key={`bf-${i}-${g.t}`}>
+                    <line className="trail" x1={p0.x} y1={p0.y} x2={x} y2={y} />
+                    <g className={`fly ${cls}`} style={vars}>
+                      <BulletSprite x={0} y={0} fz={g.fz > 0} />
+                    </g>
+                  </React.Fragment>
+                );
+              }
               const el = <BulletSprite key={`b-${i}`} x={x} y={y} fz={g.fz > 0} />;
-              return cls ? <g key={`bw-${i}`} className={cls}>{el}</g> : el;
+              const cls2 = [cls, b.r === 0 ? 'spawn-pop' : ''].join(' ').trim();
+              return cls2 ? <g key={`bw-${i}-${g.t}`} className={cls2}>{el}</g> : el;
             })}
 
             {(g.enemies || []).map((en, i) => {

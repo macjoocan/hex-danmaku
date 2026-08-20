@@ -1020,3 +1020,30 @@ body::before {
   0% { transform: scale(0.3); opacity: 0.2; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ══ 1945식 탄막 활공 (턴제 로직은 그대로 — 렌더만 비행) ══ */
+.fly {
+  animation: flyGlide 0.2s linear;
+  transform: translate(var(--x1), var(--y1));
+}
+@keyframes flyGlide {
+  from { transform: translate(var(--x0), var(--y0)); }
+  to   { transform: translate(var(--x1), var(--y1)); }
+}
+/* 탄도 트레일 잔상 */
+.trail {
+  stroke: rgba(248, 113, 113, 0.6);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  pointer-events: none;
+  animation: trailFade 0.3s linear forwards;
+}
+@keyframes trailFade {
+  0%   { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+/* 모션 최소화 환경 존중 */
+@media (prefers-reduced-motion: reduce) {
+  .fly, .trail, .spawn-pop, .boss-fire, .muzzle, .board-shake { animation: none !important; }
+  .trail { opacity: 0; }
+}
