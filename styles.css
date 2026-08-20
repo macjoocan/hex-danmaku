@@ -1047,3 +1047,36 @@ body::before {
   .fly, .trail, .spawn-pop, .boss-fire, .muzzle, .board-shake { animation: none !important; }
   .trail { opacity: 0; }
 }
+
+/* ══ 탄막게임식 총알 + 곡선 비행 (fly-path/offset-path) ══ */
+.fly-path {
+  offset-rotate: 0deg;
+  offset-distance: 100%;
+  animation: flyAlong 0.24s ease-out;
+}
+@keyframes flyAlong {
+  from { offset-distance: 0%; }
+  to   { offset-distance: 100%; }
+}
+/* 곡선 탄도 트레일 */
+.trail-path {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  pointer-events: none;
+  animation: trailFade 0.32s linear forwards;
+}
+.tp-std   { stroke: rgba(248, 113, 113, 0.55); }
+.tp-zig   { stroke: rgba(192, 132, 252, 0.55); }
+.tp-slow  { stroke: rgba(125, 211, 252, 0.5); }
+.tp-drift { stroke: rgba(251, 191, 36, 0.55); }
+/* 총알 글로우 맥동 — 정지해 있어도 살아있는 느낌 */
+.shot-halo { animation: shotPulse 0.9s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes shotPulse {
+  from { opacity: 0.55; transform: scale(0.85); }
+  to   { opacity: 0.95; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fly-path, .trail-path, .shot-halo { animation: none !important; }
+  .trail-path { opacity: 0; }
+}

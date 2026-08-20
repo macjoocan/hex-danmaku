@@ -14,7 +14,7 @@ try {
   else if (q === '0') localStorage.removeItem('hex_cheat');
 } catch { /* file:// 등에서 실패해도 무시 */ }
 const {
-  PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
+  PlayerSprite, BulletSprite, ShotSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite, BeamSprite,
@@ -317,31 +317,35 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
     return set;
   }, [g.bl, g.fz, g.ht]);
 
-  // 1945식 활공 렌더: 각 탄이 직전 턴 어느 칸에서 왔는지 역추적 — 엔진 무변경.
+  // 1945식 비행 렌더: 각 탄이 직전 턴(그리고 그 전 턴) 어느 칸에서 왔는지 역추적 — 엔진 무변경.
   // 이동이 결정론적이라 nextBulletPos(이전 탄) == 현재 위치 매칭으로 복원 가능하다.
-  const prevBlRef = useRef({ t: -1, bl: [] });
-  const flightFrom = useMemo(() => {
+  // from2(두 턴 전)까지 있으면 곡선(베지어) 궤적으로 그린다 — "셀 단위"가 아니라 흘러오는 느낌.
+  const prevBlRef = useRef({ t: -1, bl: [], flight: [] });
+  const flightInfo = useMemo(() => {
     const prev = prevBlRef.current;
-    const usable = (prev.t === g.t - 1 && g.fz <= 0) ? [...prev.bl] : null;
+    const usable = (prev.t === g.t - 1 && g.fz <= 0)
+      ? prev.bl.map((p, j) => ({ p, j })) : null;
     return g.bl.map(b => {
       if (!usable || b.fuse != null) return null;
       // 같은 자리(홀드) 우선 소진 — 오매칭 방지
-      let idx = usable.findIndex(p => p && p.fuse == null && p.r === b.r && p.c === b.c
-        && !!p.zig === !!b.zig && !!p.slow === !!b.slow);
-      let same = idx >= 0;
-      if (idx < 0) {
-        idx = usable.findIndex(p => {
-          if (!p || p.fuse != null || !!p.zig !== !!b.zig || !!p.slow !== !!b.slow) return false;
-          const n = HX.nextBulletPos(p);
+      let hit = usable.findIndex(e => e && e.p.fuse == null && e.p.r === b.r && e.p.c === b.c
+        && !!e.p.zig === !!b.zig && !!e.p.slow === !!b.slow);
+      const same = hit >= 0;
+      if (hit < 0) {
+        hit = usable.findIndex(e => {
+          if (!e || e.p.fuse != null || !!e.p.zig !== !!b.zig || !!e.p.slow !== !!b.slow) return false;
+          const n = HX.nextBulletPos(e.p);
           return !n.hold && n.r === b.r && n.c === b.c;
         });
       }
-      if (idx < 0) return null;
-      const p = usable[idx]; usable[idx] = null;
-      return same ? null : { r: p.r, c: p.c };
+      if (hit < 0) return null;
+      const { p, j } = usable[hit]; usable[hit] = null;
+      if (same) return null;
+      const prevFlight = prev.flight[j];
+      return { from: { r: p.r, c: p.c }, from2: prevFlight ? prevFlight.from : null };
     });
   }, [g.bl, g.t, g.fz]);
-  useEffect(() => { prevBlRef.current = { t: g.t, bl: g.bl }; }, [g.t, g.bl]);
+  useEffect(() => { prevBlRef.current = { t: g.t, bl: g.bl, flight: flightInfo }; }, [g.t, g.bl, flightInfo]);
 
   const previewSet = useMemo(() => {
     const set = new Set();
@@ -529,24 +533,30 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               const k = `${b.r},${b.c}`; if (xCells.has(k)) return null;
               const { x, y } = hc(b.r, b.c);
               if (b.fuse != null) return <MineSprite key={`b-${i}`} x={x} y={y} armed={b.fuse === 0} />;
-              const cls = [b.zig ? 'blt-zig' : b.slow ? 'blt-slow' : ''].join(' ').trim();
-              const from = flightFrom[i]; // 직전 턴 위치 (없으면 신규 스폰)
-              if (from) {
-                // 1945식 활공: 이전 칸 → 현재 칸으로 부드럽게 날아오고, 탄도 트레일이 잔상으로 남는다
-                const p0 = hc(from.r, from.c);
-                const vars = { '--x0': `${p0.x}px`, '--y0': `${p0.y}px`, '--x1': `${x}px`, '--y1': `${y}px` };
+              const kind = b.zig ? 'zig' : b.slow ? 'slow' : b.vc ? 'drift' : 'std';
+              const fl = flightInfo[i]; // 직전 턴 위치(+두 턴 전) — 없으면 신규 스폰
+              if (fl) {
+                // 곡선 비행: 두 턴 전 위치를 반사한 제어점으로 베지어 궤적을 만들면
+                // 지그재그/드리프트탄이 셀 격자를 무시하고 흘러오는 것처럼 보인다.
+                const p1 = hc(fl.from.r, fl.from.c);
+                const p2 = fl.from2 ? hc(fl.from2.r, fl.from2.c) : null;
+                const cx = p2 ? p1.x + (p1.x - p2.x) * 0.45 : (p1.x + x) / 2;
+                const cy = p2 ? p1.y + (p1.y - p2.y) * 0.45 : (p1.y + y) / 2;
+                const d = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`;
                 return (
                   <React.Fragment key={`bf-${i}-${g.t}`}>
-                    <line className="trail" x1={p0.x} y1={p0.y} x2={x} y2={y} />
-                    <g className={`fly ${cls}`} style={vars}>
-                      <BulletSprite x={0} y={0} fz={g.fz > 0} />
+                    <path className={`trail-path tp-${kind}`} d={d} />
+                    <g className="fly-path" style={{ offsetPath: `path('${d}')` }}>
+                      <ShotSprite kind={kind} fz={g.fz > 0} />
                     </g>
                   </React.Fragment>
                 );
               }
-              const el = <BulletSprite key={`b-${i}`} x={x} y={y} fz={g.fz > 0} />;
-              const cls2 = [cls, b.r === 0 ? 'spawn-pop' : ''].join(' ').trim();
-              return cls2 ? <g key={`bw-${i}-${g.t}`} className={cls2}>{el}</g> : el;
+              return (
+                <g key={`bw-${i}-${g.t}`} className={b.r === 0 ? 'spawn-pop' : ''}>
+                  <ShotSprite x={x} y={y} kind={kind} fz={g.fz > 0} />
+                </g>
+              );
             })}
 
             {(g.enemies || []).map((en, i) => {

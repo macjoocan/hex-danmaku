@@ -55,8 +55,8 @@ const DEFAULT_BAL = {
   dash: { cost: 3, range: 2 },
   // 메타 성장 (2차 세트 B1·C3): 사망 시 점수→코인 전환율. <추정> — meta-econ-sim으로 확정
   meta: { convertBase: 0.03, convertPerLv: 0.02 },
-  // 변칙 탄막 (엔드리스 전용): diffEasy 턴부터 지그재그, diffNormal 턴부터 슬로우 혼입. <추정>
-  bullets: { zigChance: 0.2, slowChance: 0.15 },
+  // 변칙 탄막 (엔드리스 전용): diffEasy 턴부터 지그재그·드리프트, diffNormal 턴부터 슬로우 혼입. <추정>
+  bullets: { zigChance: 0.2, slowChance: 0.15, driftChance: 0.12 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -392,6 +392,7 @@ const tick = (s, nr, nc) => {
           const bb = bal().bullets, e = bal().endless;
           if (s.t >= e.diffNormal && rnd() < bb.slowChance) return { ...base, slow: 1, held: true };
           if (s.t >= e.diffEasy && rnd() < bb.zigChance) return { ...base, zig: 1, zdir: rnd() < 0.5 ? 1 : -1 };
+          if (s.t >= e.diffEasy && rnd() < bb.driftChance) return { ...base, vc: rnd() < 0.5 ? 1 : -1, bounce: true };
           return base;
         };
         mv = [...mv, ...cols.map(mkBullet)];

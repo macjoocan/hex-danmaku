@@ -184,10 +184,31 @@ const BossAvatarSprite = ({ x, y, sprite, phaseLevel = 0, defeated = false }) =>
   );
 };
 
+
+// ─── 탄막게임식 총알 (ShotSprite) — 아트 레지스트리와 무관한 기하 글로우 오브 ───
+// kind: std(주홍) · zig(보라) · slow(하늘) · drift(호박). fz(프리즈)면 청색 감쇠.
+const SHOT_COLORS = {
+  std:   { core: '#fff7ed', rim: '#f87171', glow: 'rgba(248,113,113,0.55)' },
+  zig:   { core: '#faf5ff', rim: '#c084fc', glow: 'rgba(192,132,252,0.55)' },
+  slow:  { core: '#f0f9ff', rim: '#7dd3fc', glow: 'rgba(125,211,252,0.55)' },
+  drift: { core: '#fffbeb', rim: '#fbbf24', glow: 'rgba(251,191,36,0.55)' },
+};
+const ShotSprite = ({ x = 0, y = 0, kind = 'std', fz = false }) => {
+  const c = SHOT_COLORS[kind] || SHOT_COLORS.std;
+  const rim = fz ? '#60a5fa' : c.rim;
+  return (
+    <g transform={`translate(${x},${y})`} className="shot">
+      <circle r="9" fill={fz ? 'rgba(96,165,250,0.35)' : c.glow} className="shot-halo" />
+      <circle r="6" fill={rim} />
+      <circle r="3.2" fill={fz ? '#dbeafe' : c.core} />
+    </g>
+  );
+};
+
 Object.assign(window, {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,
   SpikeSprite, TurretSprite,
   BouncerSprite, LungerSprite, PadSprite, MineSprite, CrackSprite,
-  BeamSprite, BombZoneSprite, BossAvatarSprite,
+  BeamSprite, BombZoneSprite, BossAvatarSprite, ShotSprite,
 });
