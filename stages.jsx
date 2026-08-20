@@ -422,7 +422,11 @@ const regionStars = (region, stars) => {
 };
 const regionMax = (region) => (region.to - region.from + 1) * 3;
 const regionCleared = (region, stars) => (stars[STAGES[region.to].id] || 0) > 0; // 보스 클리어 = 지역 클리어
-const regionUnlocked = (ri, stars) => ri === 0 || regionCleared(REGIONS[ri - 1], stars);
+// 치트 모드(개발/테스트용): 잠금 판정만 우회한다 — 별·업적·기록은 건드리지 않는다.
+// 켜기: URL에 ?cheat=1 (끄기 ?cheat=0) 또는 콘솔에서 localStorage.setItem('hex_cheat','1')
+const cheatOn = () => { try { return localStorage.getItem('hex_cheat') === '1'; } catch { return false; } };
+
+const regionUnlocked = (ri, stars) => cheatOn() || ri === 0 || regionCleared(REGIONS[ri - 1], stars);
 
 // ─── Achievements (per-region + global; pure checks over stars + best) ───
 // id 컨벤션: 'r{regionId}-clear|master|speed', 글로벌 'g-*'. 수치는 플레이스홀더(E에서 튜닝).
@@ -598,7 +602,7 @@ const coinReward = (stars, isFirst) => {
 };
 
 const isUnlocked = (idx, stars) =>
-  idx === 0 || (STAGES[idx] && STAGES[idx].id >= 1000) || !!stars[STAGES[idx - 1].id];
+  cheatOn() || idx === 0 || (STAGES[idx] && STAGES[idx].id >= 1000) || !!stars[STAGES[idx - 1].id];
 
 // 3 stars: no skills · 2 stars: ≤2 skills · 1 star: cleared
 const rateStage = (s) => {
@@ -620,7 +624,7 @@ Object.assign(window, {
     initStage, initStageDef, initStageReplay, objText, objFor,
     REGIONS, regionStars, regionMax, regionCleared, regionUnlocked,
     ACHIEVEMENTS, achvDone, regionAchv, totalAchv,
-    loadStars, saveStars, loadBest, saveBest, isUnlocked, rateStage,
+    loadStars, saveStars, loadBest, saveBest, isUnlocked, rateStage, cheatOn,
     loadCoins, saveCoins, coinReward,
     TYPE_META,
     loadDaily, saveDailyScore, loadStreak, saveStreak, bumpStreak,

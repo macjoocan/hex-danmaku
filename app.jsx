@@ -3,6 +3,16 @@
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const HX = window.HX;
 const HXS = window.HXS;
+
+// 치트 토글(개발·테스트용): URL #cheat=1 로 켜고 #cheat=0 으로 끈다 (?cheat=도 지원).
+// 해시를 기본으로 쓰는 이유: serve의 cleanUrls 301 리다이렉트가 쿼리스트링을 버린다.
+// 잠금 판정만 우회 — 별·업적·기록은 그대로다 (stages.jsx cheatOn 참조).
+try {
+  const q = new URLSearchParams(location.search).get('cheat')
+    ?? new URLSearchParams(location.hash.replace(/^#/, '')).get('cheat');
+  if (q === '1') localStorage.setItem('hex_cheat', '1');
+  else if (q === '0') localStorage.removeItem('hex_cheat');
+} catch { /* file:// 등에서 실패해도 무시 */ }
 const {
   PlayerSprite, BulletSprite, StarSprite, BombSprite, TpSprite, HintSprite, CoinSprite,
   ExplodeSprite, PortalSprite, WallSprite, GemSprite, ChaserSprite,

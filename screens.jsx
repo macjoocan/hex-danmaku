@@ -21,6 +21,9 @@ const MenuScreen = ({ hi, totalStars, maxStars, onStage, onEndless, onEditor, on
       </div>
       <h1 className="logo-title">HEX<br />DANMAKU</h1>
       <div className="logo-sub">육각 탄막 · 회피 액션</div>
+      {window.HXS.cheatOn && window.HXS.cheatOn() && (
+        <div className="logo-sub" style={{ color: '#f87171', fontWeight: 700 }}>CHEAT — 전체 해금 (?cheat=0 으로 해제)</div>
+      )}
     </div>
 
     <div className="mode-list">
