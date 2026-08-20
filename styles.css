@@ -983,3 +983,40 @@ body::before {
 .achv-item .achv-mark { width: 14px; }
 .achv-item .achv-name { font-weight: 700; }
 .achv-item .achv-desc { color: var(--tx-2); font-size: 11px; }
+
+/* ══ 보스 발사 연출 + 변칙탄 텔레그래프 (P1 juice — feat/bullet-variety) ══ */
+/* 보스 발사: 웨이브마다 리마운트(key=bossWaves)되어 재생 */
+.boss-fire { animation: bossFire 0.45s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes bossFire {
+  0%   { transform: scale(1); filter: none; }
+  25%  { transform: scale(1.28) translateY(3px); filter: drop-shadow(0 0 10px #f87171) brightness(1.6); }
+  55%  { transform: scale(0.94); filter: drop-shadow(0 0 5px #f87171) brightness(1.2); }
+  100% { transform: scale(1); filter: none; }
+}
+/* 발사 열 머즐 플래시 */
+.muzzle { fill: #fca5a5; opacity: 0; pointer-events: none; animation: muzzleFlash 0.45s ease-out; }
+@keyframes muzzleFlash {
+  0%   { opacity: 0.95; transform: scale(0.35); fill: #ffffff; }
+  45%  { opacity: 0.6;  transform: scale(1.05); fill: #fca5a5; }
+  100% { opacity: 0;    transform: scale(1.5); }
+}
+.muzzle { transform-box: fill-box; transform-origin: center; }
+/* 강공(5열+) 화면 흔들림 */
+.board-shake { animation: boardShake 0.32s ease-out; }
+@keyframes boardShake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -1px); }
+  80% { transform: translate(2px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+/* 변칙탄 텔레그래프: zig=보라, slow=하늘 */
+.blt-zig  { filter: hue-rotate(75deg) saturate(1.5) brightness(1.1); }
+.blt-slow { filter: hue-rotate(-80deg) saturate(1.2); }
+/* 탄 스폰 pop-in */
+.spawn-pop { animation: spawnPop 0.22s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes spawnPop {
+  0% { transform: scale(0.3); opacity: 0.2; }
+  100% { transform: scale(1); opacity: 1; }
+}

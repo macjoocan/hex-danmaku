@@ -115,6 +115,9 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
   const [xCells, setXC] = useState(new Set());
   const [floats, setFl] = useState([]);
   const [waveTxt, setWave] = useState('');
+  // 보스 발사 연출: 발사 열 머즐 플래시 + 강공(5열+) 화면 흔들림
+  const [muzzle, setMuzzle] = useState(null);
+  const [shakeOn, setShakeOn] = useState(false);
   const [newRec, setNewRec] = useState(false);
   const [earned, setEarned] = useState(0);
   const [coinGain, setCoinGain] = useState(0);
@@ -169,6 +172,16 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
     (g.evts || []).forEach(ev => {
       if (ev.ty === 'laser') { flashBeam(ev.c); return; }
       if (ev.ty === 'beam')  { flashBeam(ev.c); return; }
+      if (ev.ty === 'wave') { // 보스 발사: 머즐 플래시 + 강공 시 화면 흔들림
+        setMuzzle({ cols: ev.cols || [], key: Date.now() });
+        setTimeout(() => setMuzzle(null), 450);
+        if (ev.big) {
+          setShakeOn(false);
+          requestAnimationFrame(() => setShakeOn(true));
+          setTimeout(() => setShakeOn(false), 350);
+        }
+        return;
+      }
       const { x, y } = HX.hc(ev.r, ev.c);
       if (ev.ty === 'sc') addFloat(`+${ev.val}`, x, y - 6, '#fbbf24');
       else if (ev.ty === 'gem') addFloat(`+${ev.val}`, x, y - 6, '#fde68a');
@@ -177,6 +190,8 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
       else if (ev.ty === 'ht') addFloat('+예지', x, y - 6, '#f97316');
       else if (ev.ty === 'idel') addFloat('✕', x, y - 4, '#7a82b0');
       else if (ev.ty === 'cn') addFloat(`+${ev.val}🪙`, x, y - 6, '#fbbf24');
+      else if (ev.ty === 'graze') addFloat(`스침 x${ev.n}`, x, y - 6, '#34d399');
+      else if (ev.ty === 'cv') addFloat(`전리품 +${ev.val}🪙`, x, y - 6, '#fbbf24');
     });
   }, [g.evts]);
 
@@ -284,7 +299,11 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
 
   const dangerSet = useMemo(() => {
     const set = new Set();
-    if (g.ht > 0 && g.fz === 0) g.bl.forEach(b => { if (b.r + 1 < ROWS) set.add(`${b.r + 1},${b.c}`); });
+    // 엔진의 이동 예측 함수를 그대로 사용 — 변칙탄(zig/slow)도 정확히 예고된다
+    if (g.ht > 0 && g.fz === 0) g.bl.forEach(b => {
+      const p = HX.nextBulletPos(b);
+      if (p.r < ROWS && p.c >= 0 && p.c < COLS && !(p.r === b.r && p.c === b.c)) set.add(`${p.r},${p.c}`);
+    });
     return set;
   }, [g.bl, g.fz, g.ht]);
 
@@ -408,7 +427,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
       </div>
 
       {/* Grid */}
-      <div className="grid-wrap">
+      <div className={`grid-wrap${shakeOn ? ' board-shake' : ''}`}>
         <svg width={SW} height={SH} viewBox={`0 0 ${SW} ${SH}`}>
           <defs>
             <pattern id="stripes-danger" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)"><rect width="3" height="6" fill="#f87171" /></pattern>
@@ -421,8 +440,19 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
           <g style={{ pointerEvents: 'none' }}>
             {g.stage && g.stage.type === 'boss' && (() => {
               const b = g.stage.boss || {};
-              return <BossAvatarSprite x={SW / 2} y={HX.SZ * 1.4} sprite={b.sprite} phaseLevel={HXS.phaseFor(g.stage, g.bossWaves)} defeated={g.win} />;
+              // key=bossWaves: 웨이브마다 리마운트되어 발사 애니메이션(boss-fire)이 재생된다
+              return (
+                <g key={`bf-${g.bossWaves}`} className={g.bossWaves > 0 && !g.win ? 'boss-fire' : ''}>
+                  <BossAvatarSprite x={SW / 2} y={HX.SZ * 1.4} sprite={b.sprite} phaseLevel={HXS.phaseFor(g.stage, g.bossWaves)} defeated={g.win} />
+                </g>
+              );
             })()}
+
+            {/* 보스 발사 머즐 플래시 */}
+            {muzzle && (muzzle.cols || []).map(c => {
+              const { x, y } = hc(0, c);
+              return <circle key={`mz-${muzzle.key}-${c}`} className="muzzle" cx={x} cy={y} r={HX.SZ * 0.95} />;
+            })}
 
             {(g.walls || []).map((w, i) => { const { x, y } = hc(w.r, w.c); return <WallSprite key={`w-${i}`} x={x} y={y} />; })}
 
@@ -463,7 +493,10 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               const k = `${b.r},${b.c}`; if (xCells.has(k)) return null;
               const { x, y } = hc(b.r, b.c);
               if (b.fuse != null) return <MineSprite key={`b-${i}`} x={x} y={y} armed={b.fuse === 0} />;
-              return <BulletSprite key={`b-${i}`} x={x} y={y} fz={g.fz > 0} />;
+              // 변칙탄 시각 구분(텔레그래프): zig=보라 계열, slow=하늘 계열. 스폰 순간엔 pop-in.
+              const cls = [b.zig ? 'blt-zig' : b.slow ? 'blt-slow' : '', b.r === 0 ? 'spawn-pop' : ''].join(' ').trim();
+              const el = <BulletSprite key={`b-${i}`} x={x} y={y} fz={g.fz > 0} />;
+              return cls ? <g key={`bw-${i}`} className={cls}>{el}</g> : el;
             })}
 
             {(g.enemies || []).map((en, i) => {

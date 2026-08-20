@@ -55,6 +55,8 @@ const DEFAULT_BAL = {
   dash: { cost: 3, range: 2 },
   // 메타 성장 (2차 세트 B1·C3): 사망 시 점수→코인 전환율. <추정> — meta-econ-sim으로 확정
   meta: { convertBase: 0.03, convertPerLv: 0.02 },
+  // 변칙 탄막 (엔드리스 전용): diffEasy 턴부터 지그재그, diffNormal 턴부터 슬로우 혼입. <추정>
+  bullets: { zigChance: 0.2, slowChance: 0.15 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -298,6 +300,17 @@ const GIMMICKS = {
   beam:   { blocksMove: false, blocksBullet: false, lethal: 'whenFiring' },
 };
 
+// ─── 탄 이동 예측 (tick과 UI 예지 프리뷰가 같은 함수를 쓴다 — 유효값 함수 원칙) ───
+// zig: 매 턴 좌우를 번갈아 대각선으로 내려온다(모서리에서 반사). slow: 두 턴에 한 칸(held 토글).
+const nextBulletPos = (b) => {
+  if (b.fuse != null) return { r: b.r, c: b.c, vc: 0 };
+  if (b.slow && !b.held) return { r: b.r, c: b.c, vc: 0, hold: true };
+  let vc = b.zig ? (b.zdir || 1) : (b.vc || 0);
+  let nc = b.c + vc;
+  if ((b.bounce || b.zig) && (nc < 0 || nc >= C)) { vc = -vc; nc = b.c + vc; }
+  return { r: b.r + 1, c: nc, vc };
+};
+
 // ─── Main tick (handles both modes) ────────────────────────────
 const tick = (s, nr, nc) => {
   if (s.ov || s.win) return s;
@@ -330,6 +343,7 @@ const tick = (s, nr, nc) => {
 
   // ── bullet motion + spawn ──
   let mv, fz, np = s.np, np2 = s.np2, si = s.si, ln = '';
+  let waveFx = null; // 이번 턴 스폰된 웨이브 정보 (보스 발사 연출용)
   let bossWaves = s.bossWaves || 0;
   let lasers = (s.lasers || []).map(l => ({ ...l }));
   const spawnedLasers = [];
@@ -345,11 +359,12 @@ const tick = (s, nr, nc) => {
     mv = s.bl
       .map(b => {
         if (b.fuse != null) return { ...b, fuse: b.fuse - 1 }; // timed mine: counts down in place
-        let vc = b.vc || 0;
-        let nc = b.c + vc;
-        if (b.bounce && (nc < 0 || nc >= C)) { vc = -vc; nc = b.c + vc; } // reflect at edge
-        const out = { ...b, r: b.r + 1, c: nc };
-        if (vc) out.vc = vc; // keep vc only if non-zero (clean equality in tests)
+        const p = nextBulletPos(b);
+        if (p.hold) return { ...b, held: true };               // slow: 이번 턴은 제자리
+        const out = { ...b, r: p.r, c: p.c };
+        if (b.slow) out.held = false;
+        if (b.zig) out.zdir = -p.vc;                           // 실제 사용 방향의 반대 = 다음 방향
+        else if (p.vc) out.vc = p.vc; // keep vc only if non-zero (clean equality in tests)
         return out;
       })
       .filter(b =>
@@ -370,7 +385,16 @@ const tick = (s, nr, nc) => {
       } else {
         const cols = s.np.c.filter(c =>
           !block.some(w => w.r === 0 && w.c === c) && !(goalR === 0 && c === goalC));
-        mv = [...mv, ...cols.map(c => (s.np.vc != null ? { r: 0, c, vc: s.np.vc } : { r: 0, c }))];
+        // 변칙탄 혼입 (엔드리스 전용 — 스테이지/보스 탄은 패턴 정의 그대로, 밸런스 불변)
+        const mkBullet = (c) => {
+          const base = s.np.vc != null ? { r: 0, c, vc: s.np.vc } : { r: 0, c };
+          if (isStage) return base;
+          const bb = bal().bullets, e = bal().endless;
+          if (s.t >= e.diffNormal && rnd() < bb.slowChance) return { ...base, slow: 1, held: true };
+          if (s.t >= e.diffEasy && rnd() < bb.zigChance) return { ...base, zig: 1, zdir: rnd() < 0.5 ? 1 : -1 };
+          return base;
+        };
+        mv = [...mv, ...cols.map(mkBullet)];
       }
       if (s.np.laser) s.np.laser.forEach(c => spawnedLasers.push({ c, charge: 2 }));
       if (s.np.summon) spawnedEnemies.push({ ...s.np.summon });
@@ -380,6 +404,11 @@ const tick = (s, nr, nc) => {
           spawnedBombs.push({ r: cell.r, c: cell.c, age: 0, armed: false });
       });
       ln = s.np.n;
+      waveFx = {
+        boss: isStage && s.obj && s.obj.type === 'boss',
+        cols: s.np.cells ? s.np.cells.map(x => x.c) : (s.np.c || []),
+        laser: s.np.laser || null,
+      };
       if (isStage && s.obj && s.obj.type === 'boss') bossWaves++;
       np = s.np2;
       np2 = isStage
@@ -432,6 +461,10 @@ const tick = (s, nr, nc) => {
   let gems = s.gems || [];
   let ht = Math.max(0, s.ht - 1);
   const evts = [];
+  // 보스 발사 연출 이벤트: 어느 열에서 쐈는지 + 강공(5열 이상) 여부
+  if (waveFx && waveFx.boss) {
+    evts.push({ ty: 'wave', cols: waveFx.cols, laser: waveFx.laser, big: (waveFx.cols || []).length >= 5 });
+  }
 
   // bullets crush items
   const crushed = [];
@@ -570,7 +603,7 @@ const tick = (s, nr, nc) => {
     if (grazeN) {
       gz = Math.min(effGaugeMax(s), gz + grazeN * gb.gaugePerBullet);
       sc += grazeN * effGrazeBonus(s);
-      evts.push({ ty: 'graze', n: grazeN });
+      evts.push({ ty: 'graze', n: grazeN, r: finalR, c: finalC });
     }
   }
 
@@ -578,7 +611,7 @@ const tick = (s, nr, nc) => {
   let cv = 0;
   if (!isStage && ov) {
     cv = Math.floor(sc * effConvertRate(s));
-    if (cv > 0) evts.push({ ty: 'cv', val: cv });
+    if (cv > 0) evts.push({ ty: 'cv', val: cv, r: finalR, c: finalC });
   }
 
   return {
@@ -709,5 +742,6 @@ Object.assign(window, {
     doUndo, doBomb, doFreeze,
     initState, seedRng, DEFAULT_BAL, bal,
     UPGRADES, loadUp, saveUp, upLv, effDashCost, effGaugeMax, effGrazeBonus, effConvertRate,
+    nextBulletPos,
   },
 });
