@@ -128,6 +128,10 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
   // 보스 발사 연출: 발사 열 머즐 플래시 + 강공(5열+) 화면 흔들림
   const [muzzle, setMuzzle] = useState(null);
   const [shakeOn, setShakeOn] = useState(false);
+  // 부유 탄막(1945식 연출 레이어): 보스가 발사할 때 셀 위를 떠서 흘러내리는 장식 탄.
+  // 판정·게임 상태와 완전히 무관(순수 비주얼) — Math.random 사용해도 결정론 무영향.
+  const [fxShots, setFxShots] = useState([]);
+  const fxIdRef = useRef(0);
   const [newRec, setNewRec] = useState(false);
   const [earned, setEarned] = useState(0);
   const [coinGain, setCoinGain] = useState(0);
@@ -182,13 +186,33 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
     (g.evts || []).forEach(ev => {
       if (ev.ty === 'laser') { flashBeam(ev.c); return; }
       if (ev.ty === 'beam')  { flashBeam(ev.c); return; }
-      if (ev.ty === 'wave') { // 보스 발사: 머즐 플래시 + 강공 시 화면 흔들림
+      if (ev.ty === 'wave') { // 보스 발사: 머즐 플래시 + 강공 시 화면 흔들림 + 부유 탄막 분출
         setMuzzle({ cols: ev.cols || [], key: Date.now() });
         setTimeout(() => setMuzzle(null), 450);
         if (ev.big) {
           setShakeOn(false);
           requestAnimationFrame(() => setShakeOn(true));
           setTimeout(() => setShakeOn(false), 350);
+        }
+        // 부유 탄막: 보스 위치에서 발사 열들을 향해 부채꼴로 흩뿌리는 장식 탄 (셀 위 부유)
+        {
+          const bx = SW / 2, by = HX.SZ * 1.4;
+          const now = Date.now();
+          const burst = [];
+          const cols = (ev.cols && ev.cols.length ? ev.cols : [1, 3, 5]).slice(0, 7);
+          for (const c of cols) {
+            const tx = HX.hc(0, c).x;
+            for (let n = 0; n < 2; n++) {
+              const sway = (Math.random() - 0.5) * 70;
+              const endX = tx + (Math.random() - 0.5) * 30;
+              const dur = 1400 + Math.random() * 800;
+              const delay = n * 160 + Math.random() * 120;
+              const d = `M ${bx.toFixed(0)} ${by.toFixed(0)} C ${(tx + sway).toFixed(0)} ${(SH * 0.33).toFixed(0)} ${(tx - sway).toFixed(0)} ${(SH * 0.66).toFixed(0)} ${endX.toFixed(0)} ${(SH + 14).toFixed(0)}`;
+              burst.push({ id: ++fxIdRef.current, d, dur, delay, die: now + delay + dur + 100 });
+            }
+          }
+          setFxShots(prev => [...prev.filter(f => f.die > now), ...burst].slice(-48));
+          setTimeout(() => setFxShots(prev => prev.filter(f => f.die > Date.now())), 2600);
         }
         return;
       }
@@ -493,6 +517,14 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               const { x, y } = hc(0, c);
               return <circle key={`mz-${muzzle.key}-${c}`} className="muzzle" cx={x} cy={y} r={HX.SZ * 0.95} />;
             })}
+
+            {/* 부유 탄막 (연출 전용 — 셀 위를 떠서 흘러내림, 판정 없음) */}
+            {fxShots.map(s => (
+              <g key={`fx-${s.id}`} className="fx-fly"
+                 style={{ offsetPath: `path('${s.d}')`, animationDuration: `${s.dur}ms`, animationDelay: `${s.delay}ms` }}>
+                <ShotSprite kind="fx" />
+              </g>
+            ))}
 
             {(g.walls || []).map((w, i) => { const { x, y } = hc(w.r, w.c); return <WallSprite key={`w-${i}`} x={x} y={y} />; })}
 

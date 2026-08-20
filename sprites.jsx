@@ -192,6 +192,7 @@ const SHOT_COLORS = {
   zig:   { core: '#faf5ff', rim: '#c084fc', glow: 'rgba(192,132,252,0.55)' },
   slow:  { core: '#f0f9ff', rim: '#7dd3fc', glow: 'rgba(125,211,252,0.55)' },
   drift: { core: '#fffbeb', rim: '#fbbf24', glow: 'rgba(251,191,36,0.55)' },
+  fx:    { core: '#fff7ed', rim: '#fb923c', glow: 'rgba(251,146,60,0.6)' }, // 부유 탄막(연출 전용)
 };
 const ShotSprite = ({ x = 0, y = 0, kind = 'std', fz = false }) => {
   const c = SHOT_COLORS[kind] || SHOT_COLORS.std;

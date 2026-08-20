@@ -1080,3 +1080,21 @@ body::before {
   .fly-path, .trail-path, .shot-halo { animation: none !important; }
   .trail-path { opacity: 0; }
 }
+
+/* ══ 부유 탄막 (연출 전용 — 보스 발사 시 셀 위를 떠서 흘러내리는 1945식 탄 커튼) ══ */
+.fx-fly {
+  offset-rotate: 0deg;
+  pointer-events: none;
+  animation-name: fxAlong;
+  animation-timing-function: linear;
+  animation-fill-mode: both; /* delay 동안 from(투명) 상태 유지 */
+}
+@keyframes fxAlong {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  6%   { opacity: 0.95; }
+  80%  { opacity: 0.95; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-fly { display: none; }
+}
