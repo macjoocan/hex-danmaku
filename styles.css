@@ -1085,16 +1085,10 @@ body::before {
 .fx-fly {
   offset-rotate: 0deg;
   pointer-events: none;
-  animation-name: fxAlong;
-  animation-timing-function: linear;
-  animation-fill-mode: both; /* delay 동안 from(투명) 상태 유지 */
-}
-@keyframes fxAlong {
-  0%   { offset-distance: 0%;   opacity: 0; }
-  6%   { opacity: 0.95; }
-  80%  { opacity: 0.95; }
-  100% { offset-distance: 100%; opacity: 0; }
+  opacity: 0.95;
+  /* 턴 동기: 엔진이 진행도(p)를 올리면 offset-distance가 부드럽게 따라간다 */
+  transition: offset-distance 0.24s linear;
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-fly { display: none; }
+  .fx-fly { transition: none; }
 }

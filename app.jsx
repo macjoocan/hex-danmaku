@@ -128,10 +128,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
   // 보스 발사 연출: 발사 열 머즐 플래시 + 강공(5열+) 화면 흔들림
   const [muzzle, setMuzzle] = useState(null);
   const [shakeOn, setShakeOn] = useState(false);
-  // 부유 탄막(1945식 연출 레이어): 보스가 발사할 때 셀 위를 떠서 흘러내리는 장식 탄.
-  // 판정·게임 상태와 완전히 무관(순수 비주얼) — Math.random 사용해도 결정론 무영향.
-  const [fxShots, setFxShots] = useState([]);
-  const fxIdRef = useRef(0);
+  // 자유탄은 엔진 상태(g.fb)가 정본 — 실탄(맞으면 게임오버)이라 렌더는 그리기만 한다.
   const [newRec, setNewRec] = useState(false);
   const [earned, setEarned] = useState(0);
   const [coinGain, setCoinGain] = useState(0);
@@ -193,26 +190,6 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
           setShakeOn(false);
           requestAnimationFrame(() => setShakeOn(true));
           setTimeout(() => setShakeOn(false), 350);
-        }
-        // 부유 탄막: 보스 위치에서 발사 열들을 향해 부채꼴로 흩뿌리는 장식 탄 (셀 위 부유)
-        {
-          const bx = SW / 2, by = HX.SZ * 1.4;
-          const now = Date.now();
-          const burst = [];
-          const cols = (ev.cols && ev.cols.length ? ev.cols : [1, 3, 5]).slice(0, 7);
-          for (const c of cols) {
-            const tx = HX.hc(0, c).x;
-            for (let n = 0; n < 2; n++) {
-              const sway = (Math.random() - 0.5) * 70;
-              const endX = tx + (Math.random() - 0.5) * 30;
-              const dur = 1400 + Math.random() * 800;
-              const delay = n * 160 + Math.random() * 120;
-              const d = `M ${bx.toFixed(0)} ${by.toFixed(0)} C ${(tx + sway).toFixed(0)} ${(SH * 0.33).toFixed(0)} ${(tx - sway).toFixed(0)} ${(SH * 0.66).toFixed(0)} ${endX.toFixed(0)} ${(SH + 14).toFixed(0)}`;
-              burst.push({ id: ++fxIdRef.current, d, dur, delay, die: now + delay + dur + 100 });
-            }
-          }
-          setFxShots(prev => [...prev.filter(f => f.die > now), ...burst].slice(-48));
-          setTimeout(() => setFxShots(prev => prev.filter(f => f.die > Date.now())), 2600);
         }
         return;
       }
@@ -334,12 +311,19 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
   const dangerSet = useMemo(() => {
     const set = new Set();
     // 엔진의 이동 예측 함수를 그대로 사용 — 변칙탄(zig/slow)도 정확히 예고된다
-    if (g.ht > 0 && g.fz === 0) g.bl.forEach(b => {
-      const p = HX.nextBulletPos(b);
-      if (p.r < ROWS && p.c >= 0 && p.c < COLS && !(p.r === b.r && p.c === b.c)) set.add(`${p.r},${p.c}`);
-    });
+    if (g.ht > 0 && g.fz === 0) {
+      g.bl.forEach(b => {
+        const p = HX.nextBulletPos(b);
+        if (p.r < ROWS && p.c >= 0 && p.c < COLS && !(p.r === b.r && p.c === b.c)) set.add(`${p.r},${p.c}`);
+      });
+      // 자유탄의 다음 턴 위치도 예고 (엔진과 같은 fbCell 함수 사용)
+      (g.fb || []).forEach(f => {
+        const cc = HX.fbCell(f, Math.min(f.p + f.step, 1));
+        if (cc.r >= 0 && cc.r < ROWS && cc.c >= 0 && cc.c < COLS) set.add(`${cc.r},${cc.c}`);
+      });
+    }
     return set;
-  }, [g.bl, g.fz, g.ht]);
+  }, [g.bl, g.fb, g.fz, g.ht]);
 
   // 1945식 비행 렌더: 각 탄이 직전 턴(그리고 그 전 턴) 어느 칸에서 왔는지 역추적 — 엔진 무변경.
   // 이동이 결정론적이라 nextBulletPos(이전 탄) == 현재 위치 매칭으로 복원 가능하다.
@@ -518,13 +502,16 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
               return <circle key={`mz-${muzzle.key}-${c}`} className="muzzle" cx={x} cy={y} r={HX.SZ * 0.95} />;
             })}
 
-            {/* 부유 탄막 (연출 전용 — 셀 위를 떠서 흘러내림, 판정 없음) */}
-            {fxShots.map(s => (
-              <g key={`fx-${s.id}`} className="fx-fly"
-                 style={{ offsetPath: `path('${s.d}')`, animationDuration: `${s.dur}ms`, animationDelay: `${s.delay}ms` }}>
-                <ShotSprite kind="fx" />
-              </g>
-            ))}
+            {/* 자유탄 (보스 실탄 — 맞으면 게임오버). 엔진 g.fb가 정본, 턴 동기로 전진 */}
+            {(g.fb || []).map(f => {
+              const d = `M ${f.x0.toFixed(0)} ${f.y0.toFixed(0)} C ${f.cx1.toFixed(0)} ${f.cy1.toFixed(0)} ${f.cx2.toFixed(0)} ${f.cy2.toFixed(0)} ${f.x1.toFixed(0)} ${f.y1.toFixed(0)}`;
+              return (
+                <g key={`fb-${f.id}`} className="fx-fly"
+                   style={{ offsetPath: `path('${d}')`, offsetDistance: `${(Math.min(f.p, 1) * 100).toFixed(1)}%` }}>
+                  <ShotSprite kind="fx" />
+                </g>
+              );
+            })}
 
             {(g.walls || []).map((w, i) => { const { x, y } = hc(w.r, w.c); return <WallSprite key={`w-${i}`} x={x} y={y} />; })}
 

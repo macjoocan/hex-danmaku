@@ -57,6 +57,9 @@ const DEFAULT_BAL = {
   meta: { convertBase: 0.03, convertPerLv: 0.02 },
   // 변칙 탄막 (엔드리스 전용): diffEasy 턴부터 지그재그·드리프트, diffNormal 턴부터 슬로우 혼입. <추정>
   bullets: { zigChance: 0.2, slowChance: 0.15, driftChance: 0.12 },
+  // 자유탄(보스 전용): 셀 격자를 무시하고 곡선으로 흘러내리는 실제 위험 탄. <추정>
+  // 웨이브당 최대 2발, 턴당 진행 보폭 = stepMin + rnd()*stepVar (탄마다 랜덤·시드 결정론)
+  freeBullets: { maxPerWave: 2, stepMin: 0.14, stepVar: 0.2, swayPx: 70, cap: 12 },
 };
 const bal = () => (typeof window !== 'undefined' && window.HXB) ? window.HXB : DEFAULT_BAL;
 
@@ -300,6 +303,24 @@ const GIMMICKS = {
   beam:   { blocksMove: false, blocksBullet: false, lethal: 'whenFiring' },
 };
 
+// ─── 자유탄(보스 전용) — 픽셀 베지어 궤적을 따라 턴 동기로 전진하는 실탄 ───
+// 충돌은 "현재 궤적 위치가 속한 셀 == 플레이어 셀". tick과 UI가 같은 함수를 쓴다.
+const bez1 = (a, b, c2, d, t) => {
+  const u = 1 - t;
+  return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c2 + t * t * t * d;
+};
+const fbPoint = (f, p) => ({
+  x: bez1(f.x0, f.cx1, f.cx2, f.x1, p),
+  y: bez1(f.y0, f.cy1, f.cy2, f.y1, p),
+});
+// 픽셀 → 셀 (hc의 역함수 근사)
+const fbCellAt = (x, y) => {
+  const r = Math.round((y - PD - SZ) / RH);
+  const c = Math.round((x - PD - SZ - W * 0.5 * (((r % 2) + 2) % 2)) / W);
+  return { r, c };
+};
+const fbCell = (f, p) => { const pt = fbPoint(f, p == null ? f.p : p); return fbCellAt(pt.x, pt.y); };
+
 // ─── 탄 이동 예측 (tick과 UI 예지 프리뷰가 같은 함수를 쓴다 — 유효값 함수 원칙) ───
 // zig: 매 턴 좌우를 번갈아 대각선으로 내려온다(모서리에서 반사). slow: 두 턴에 한 칸(held 토글).
 const nextBulletPos = (b) => {
@@ -420,6 +441,31 @@ const tick = (s, nr, nc) => {
         : (s.t < 30 ? 2 : (rnd() < (s.t < 50 ? 0.25 : 0.48) ? 1 : 2));
     } else if (si <= 0) {
       si = 1; // boss waves exhausted: keep ticking, no new spawn
+    }
+  }
+
+  // ── 자유탄 (보스 전용 실탄): 턴 동기 전진 + 이번 웨이브 분출 ──
+  // 탄마다 시드 랜덤 보폭(step)으로 곡선 궤적을 내려온다. 프리즈면 정지.
+  let fb = (s.fb || []).map(f => ({ ...f }));
+  let fbSeq = s.fbSeq || 0;
+  if (s.fz <= 0) fb = fb.map(f => ({ ...f, p: f.p + f.step })).filter(f => f.p <= 1.05);
+  // 공정성 게이트: 안전 열이 3개 미만인 강공(sweepGap·full 등)에는 자유탄을 얹지 않는다
+  // — 강공+자유탄 조합이 "회피 불가" 상황을 만들 수 있음(fairness.test로 계약).
+  if (waveFx && waveFx.boss && (waveFx.cols || []).length <= C - 3) {
+    const fc = bal().freeBullets;
+    for (const c of (waveFx.cols || []).slice(0, fc.maxPerWave)) {
+      if (fb.length >= fc.cap) break;
+      const bx = SW / 2, by = SZ * 1.4;
+      const tx = hc(0, c).x;
+      const sway = (rnd() - 0.5) * 2 * fc.swayPx;
+      fb.push({
+        id: ++fbSeq,
+        x0: bx, y0: by,
+        cx1: tx + sway, cy1: SH * 0.33,
+        cx2: tx - sway, cy2: SH * 0.66,
+        x1: tx + (rnd() - 0.5) * 30, y1: SH + 14,
+        p: 0, step: fc.stepMin + rnd() * fc.stepVar,
+      });
     }
   }
 
@@ -558,7 +604,9 @@ const tick = (s, nr, nc) => {
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
   // collide vs s.bombs (pre-tick armed state) — matches the board the player saw when choosing this move, like spikes. NOT the aged `bombs`.
   const hitBomb = (s.bombs || []).some(b => b.armed && b.r === finalR && b.c === finalC);
-  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb;
+  // 자유탄 충돌: 궤적 위치가 속한 셀에 플레이어가 있으면 피격 (스폰 턴은 p=0, 보스 위치라 안전)
+  const hitFree = fb.some(f => f.p > 0 && (() => { const cc = fbCell(f); return cc.r === finalR && cc.c === finalC; })());
+  const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb || hitFree;
 
   // merge boss-summoned adds AFTER collision — they don't act (or kill) on their spawn turn,
   // so an add materializing on the player's cell is a telegraph, not an untelegraphed death.
@@ -636,6 +684,8 @@ const tick = (s, nr, nc) => {
     bombs,
     gz,
     cv,
+    fb,
+    fbSeq,
   };
 };
 
@@ -729,6 +779,8 @@ const initState = (seed) => {
   bombs: [],
   gz: 2 * Math.min(up.startGauge || 0, UPGRADES.startGauge.max),
   cv: 0,
+  fb: [],
+  fbSeq: 0,
   };
 };
 
@@ -743,6 +795,6 @@ Object.assign(window, {
     doUndo, doBomb, doFreeze,
     initState, seedRng, DEFAULT_BAL, bal,
     UPGRADES, loadUp, saveUp, upLv, effDashCost, effGaugeMax, effGrazeBonus, effConvertRate,
-    nextBulletPos,
+    nextBulletPos, fbPoint, fbCellAt, fbCell,
   },
 });
