@@ -29,6 +29,19 @@ test('stepping onto an armed bomb is game over; telegraph cell is safe', () => {
   assert.equal(HX.tick(tel, 9, 0).ov, false);
 });
 
+test('폭발 반경(blast=1): 인접 칸도 같이 터진다, 거리 2는 안전, 텔레그래프는 유예', () => {
+  const { HX } = loadGame();
+  // 장판 (9,0) 옆 (10,0)에서 제자리 대기 = 반경 내 → 폭사
+  const near = boss(HX, { pl: { r: 10, c: 0 }, bombs: [{ r: 9, c: 0, age: 1, armed: true }] });
+  assert.equal(HX.tick(near, 10, 0).ov, true, '인접 제자리 = 폭사');
+  // 거리 2면 생존
+  const far = boss(HX, { pl: { r: 10, c: 2 }, bombs: [{ r: 9, c: 0, age: 1, armed: true }] });
+  assert.equal(HX.tick(far, 10, 2).ov, false, '반경 밖은 안전');
+  // 미기폭(텔레그래프)은 반경 안이어도 아직 안전 — 피할 1턴 보장
+  const tel = boss(HX, { pl: { r: 10, c: 0 }, bombs: [{ r: 9, c: 0, age: 0, armed: false }] });
+  assert.equal(HX.tick(tel, 10, 1).ov, false);
+});
+
 test('freeze pauses bomb age', () => {
   const { HX } = loadGame();
   const s = boss(HX, { pl: { r: 10, c: 0 }, fz: 2, bombs: [{ r: 5, c: 3, age: 0, armed: false }] });

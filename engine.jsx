@@ -48,7 +48,7 @@ const DEFAULT_BAL = {
   enemy: { chaseEvery: 2, lungeWindup: 1, lungeDash: 2 },
   endless: { diffEasy: 15, diffNormal: 35, diffHard: 60 },
   coin: { clearPerStar: 20, repeatPerStar: 5, pickupValue: 5, spawnChance: 0.08, max: 2 },
-  boss: { bombsPerWave: 2, bombLife: 2, bombTelegraph: 1 },
+  boss: { bombsPerWave: 2, bombLife: 2, bombTelegraph: 1, blast: 1 }, // blast: 폭발 반경(헥스 거리) <추정>
   // 액티브 기믹 (엔드리스 전용 · 기획: docs/design-active-growth-roguelike.md 1차 세트)
   // 초판 수치는 <추정> — endless-sim으로 검증 후 확정
   graze: { gaugePerBullet: 1, gaugeMax: 6, scoreBonus: 5 },
@@ -603,7 +603,8 @@ const tick = (s, nr, nc) => {
     || dashCells.some(p => p.r === finalR && p.c === finalC);
   const hitSpike = spikes.some(sp => sp.r === finalR && sp.c === finalC);
   // collide vs s.bombs (pre-tick armed state) — matches the board the player saw when choosing this move, like spikes. NOT the aged `bombs`.
-  const hitBomb = (s.bombs || []).some(b => b.armed && b.r === finalR && b.c === finalC);
+  // 폭탄은 자기 칸만이 아니라 폭발 반경(blast) 안이면 같이 터진다 — 텔레그래프/장판 UI가 반경을 표시
+  const hitBomb = (s.bombs || []).some(b => b.armed && hd(b.r, b.c, finalR, finalC) <= bal().boss.blast);
   // 자유탄 충돌: 궤적 위치가 속한 셀에 플레이어가 있으면 피격 (스폰 턴은 p=0, 보스 위치라 안전)
   const hitFree = fb.some(f => f.p > 0 && (() => { const cc = fbCell(f); return cc.r === finalR && cc.c === finalC; })());
   const ov = stepIn || stepEnemy || hitBullet || hitEnemy || hitSpike || laserHit || beamHit || hitBomb || hitFree;

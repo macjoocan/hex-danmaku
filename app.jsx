@@ -129,6 +129,19 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
   const [muzzle, setMuzzle] = useState(null);
   const [shakeOn, setShakeOn] = useState(false);
   // 자유탄은 엔진 상태(g.fb)가 정본 — 실탄(맞으면 게임오버)이라 렌더는 그리기만 한다.
+
+  // 폭탄 폭발 반경 경고: 텔레그래프·장판 단계 모두 반경 내 셀을 위험 표시 (엔진 blast와 동일 수식)
+  const bombBlastSet = useMemo(() => {
+    const set = new Set();
+    if (!(g.bombs || []).length) return set;
+    const blast = HX.bal().boss.blast;
+    g.bombs.forEach(b => {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (HX.hd(r, c, b.r, b.c) <= blast) set.add(`${r},${c}`);
+      }
+    });
+    return set;
+  }, [g.bombs]);
   const [newRec, setNewRec] = useState(false);
   const [earned, setEarned] = useState(0);
   const [coinGain, setCoinGain] = useState(0);
@@ -386,7 +399,7 @@ function GameView({ g, setG, stars, setStars, hi, setHi, setDaily, onRetry, onNe
       player, dead: player && g.ov,
       bullet: bulletSet.has(k) && !isTeleMine,
       item: itemMap.has(k),
-      danger: dangerSet.has(k) || lungeWarn.has(k) || isTeleMine,
+      danger: dangerSet.has(k) || lungeWarn.has(k) || isTeleMine || bombBlastSet.has(k),
       preview: previewSet.has(k),
       move: !player && moveSet.has(k),
       exploding: xCells.has(k),
