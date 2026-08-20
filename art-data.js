@@ -1,3 +1,7 @@
+// scope guard: 이 파일은 일반 <script>라 최상위 const가 전역 렉시컬 바인딩이 된다.
+// in-browser Babel이 평가하는 text/babel 스크립트(resources.jsx의 `const { RES }`)와
+// 'RES already declared'로 충돌해 리소스 체인 전체가 죽는다 → IIFE로 격리한다.
+(function () {
 /* ════════════════════════════════════════════════════════════════════════
  *  art-data.js — THE ART REGISTRY (pure data).   ← swap every sprite from this one file
  * ════════════════════════════════════════════════════════════════════════
@@ -655,3 +659,5 @@ const RES = {
 
 // 데이터/로직 분리: 렌더 로직(px/drawArt/isImage)은 resources.jsx에 있음. 여기는 순수 데이터.
 window.HXR_DATA = { RES };
+
+})();
